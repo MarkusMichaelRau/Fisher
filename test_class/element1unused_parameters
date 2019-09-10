@@ -1,0 +1,10 @@
+# List of input/precision parameters passed
+# but not used (just for info)
+#
+selection_bias = 0
+selection_magnification_bias = 0
+l_switch_limber_for_nc_local_over_z = 1
+l_switch_limber_for_nc_los_over_z = 1
+selection_biask_arr = 0.0
+selection_bias0_arr = 1.0
+selection_bias1_arr = 0.
