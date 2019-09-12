@@ -71,7 +71,7 @@ extra_output =
 ;Control of extra info printed out
 quiet=F
 timing=T
-debug=F
+debug=T
 
 
 ;***********************************
@@ -107,7 +107,7 @@ kmax=500.0
 
 [load_nz]
 file = cosmosis-standard-library/number_density/load_nz/load_nz.py
-output_section = nz_source
+output_section = "nz_source"
 filepath = $1
 
 
@@ -121,7 +121,7 @@ file = cosmosis-standard-library/structure/projection/project_2d.py
 ell_min = $(python -c "print float($2)")
 ell_max = $(python -c "print float($3)")
 n_ell = 400
-shear-shear = nz_source-nz_source
+shear-shear = source-source
 verbose = T
 get_kernel_peaks=F
 EOT
