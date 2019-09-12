@@ -25,44 +25,24 @@ mv .log_ordering.dat ordering_fid.dat
 # mkdir output_covmat
 # python cov_mat.py $fsky Cl_fid.dat ordering_fid.dat .num_dens.dat output_covmat/
 
-
-# echo 'Omega matter derivative'
-# ./get_deriv_cluster.sh 1 0.15 $1
-
 echo 'w0 derivative'
 ./get_stencil_deriv_cluster.py 2 0.15 $1 2
 
-# #echo 'H0 derivative'
-# #./get_deriv_cluster.sh 3 0.15 $1
-
-# echo 'A_s derivative'
-# ./get_deriv_cluster.sh 4 0.15 $1
-
-# #echo 'Omega_b derivative'
-# #./get_deriv_cluster.sh 5 0.15 $1
-
-# # echo 'n_s derivative'
-# # ./get_deriv_cluster.sh 6 0.15 $1
-
-# # echo 'galbias derivative'
-# # ./get_deriv_cluster.sh 7 0.15 $1
-
-# # echo 'wa derivative'
-# # ./get_deriv_cluster.sh 8 0.15 $1
-
 # python get_fisher.py $lmin $lmax om_m A_s
+python get_w0_sn_ratio.py lensing
 
 # # #now the resulting fisher matrix is in fisher_out.dat
 # mkdir out_fisher_cluster
+mkdir out_wo_sn_ratio
 
 # cp Cl_fid.dat out_fisher_cluster/
-# rm .Cl_lower.dat
-# rm .Cl_upper.dat
-# mv deriv_*.dat out_fisher_cluster/
+rm .Cl_lower*.dat
+rm .Cl_upper*.dat
+mv deriv_*.dat out_wo_sn_ratio/
 
-# mv fisher_out.dat out_fisher_cluster/
-rm .log_ordering_lower.dat
-rm .log_ordering_upper.dat
+mv w0_sn_ratio_lensing.dat
+rm .log_ordering_lower*.dat
+rm .log_ordering_upper*.dat
 # mv ordering_fid.dat out_fisher_cluster/
 
 # mv output_covmat out_fisher_cluster
