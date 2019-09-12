@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 script to take photoz distributions in the format
 
