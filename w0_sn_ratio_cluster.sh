@@ -29,8 +29,8 @@ mv .log_ordering.dat ordering_fid.dat
 # echo 'Omega matter derivative'
 # ./get_deriv_cluster.sh 1 0.15 $1
 
-# # echo 'w0 derivative'
-# # ./get_deriv_cluster.sh 2 0.15 $1
+echo 'w0 derivative'
+./get_stencil_deriv_cluster.py 2 0.15 $1 2
 
 # #echo 'H0 derivative'
 # #./get_deriv_cluster.sh 3 0.15 $1
@@ -61,8 +61,8 @@ mv .log_ordering.dat ordering_fid.dat
 # mv deriv_*.dat out_fisher_cluster/
 
 # mv fisher_out.dat out_fisher_cluster/
-# rm .log_ordering_lower.dat
-# rm .log_ordering_upper.dat
+rm .log_ordering_lower.dat
+rm .log_ordering_upper.dat
 # mv ordering_fid.dat out_fisher_cluster/
 
 # mv output_covmat out_fisher_cluster
