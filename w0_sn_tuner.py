@@ -9,9 +9,6 @@ import subprocess
 import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
-from scipy.stats import norm, chi2
-from tomo_and_num_dens import gen_data
-import plot_ellipses
 
 OUTDIR = "out_w0_sn_all"
 
@@ -38,7 +35,7 @@ def make_dir(newdir):
     if not os.path.exists(newdir):
         os.makedirs(newdir)
 
-def gen_w0_sn_ratio(delta=0.1, probe):
+def gen_w0_sn_ratio(probe, delta=0.1):
     subprocess.call(["echo", "Generating w0 signal to noise ratio"])
     dndz_path = "tomo_%s.dat"%(probe)
     num_dens_path = "num_dens_%s.dat"%(probe)
@@ -80,7 +77,7 @@ def main():
     ##########################################
     # read args
     ##########################################
-    nbins_src = int(sys.argv[1])
+    nbins = int(sys.argv[1])
     
     if len(sys.argv) == 3 or len(sys.argv) == 4:
         delta = float(sys.argv[2])
@@ -101,7 +98,7 @@ def main():
     # gen_tomo_data(probe, nbins)
 
     # get signal-to-noise ratio
-    gen_w0_sn_ratio(delta)    
+    gen_w0_sn_ratio(probe, delta)    
 
     ##########################################
     # save data
