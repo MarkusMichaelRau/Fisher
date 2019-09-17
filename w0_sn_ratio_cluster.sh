@@ -10,7 +10,6 @@
 
 #properties of the survey
 fsky=0.12
-probe=lensing
 
 # #define Fiducial values
 source fid_values.sh
@@ -31,10 +30,9 @@ echo 'w0 derivative'
 ./get_stencil_deriv_cluster.py 2 $4 $1 2
 
 # python get_fisher.py $lmin $lmax om_m A_s
-python get_w0_sn_ratio.py $probe
+python get_w0_sn_ratio.py $3 $2
 
-# # #now the resulting fisher matrix is in fisher_out.dat
-# mkdir out_fisher_cluster
+# now the resulting fisher matrix is in w0_sn_raio.dat
 mkdir out_wo_sn_ratio
 
 # cp Cl_fid.dat out_fisher_cluster/
