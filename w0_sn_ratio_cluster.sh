@@ -33,14 +33,14 @@ echo 'w0 derivative'
 python get_w0_sn_ratio.py $3 $2
 
 # now the resulting fisher matrix is in w0_sn_raio.dat
-mkdir out_wo_sn_ratio
+mkdir out_w0_sn_ratio
 
 # cp Cl_fid.dat out_fisher_cluster/
 rm .Cl_lower*.dat
 rm .Cl_upper*.dat
-mv deriv_*.dat out_wo_sn_ratio/
+mv deriv_*.dat out_w0_sn_ratio/
 
-mv w0_sn_ratio_lensing.dat out_wo_sn_ratio
+mv w0_sn_ratio.dat out_w0_sn_ratio
 rm .log_ordering_lower*.dat
 rm .log_ordering_upper*.dat
 # mv ordering_fid.dat out_fisher_cluster/

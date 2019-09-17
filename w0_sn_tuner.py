@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Script to see how changing number of bins/delta for derivative
 affects w0 signal to noise ratio
@@ -50,10 +52,10 @@ def save_w0_sn_data(nbins, delta, probe):
     outdir = OUTDIR
     make_dir(outdir)
 
-    old_out_dir = "out_wo_sn_ratio/"
+    old_out_dir = "out_w0_sn_ratio/"
     if os.path.exists(old_out_dir):
         out_subdir = outdir + get_subdir(nbins, probe, delta)
-        make_dir(out_subdir)
+        # make_dir(out_subdir)
         subprocess.call(["cp", "-R", old_out_dir, out_subdir])
         return out_subdir + " w0_sn_ratio.dat"
     else:
@@ -64,9 +66,9 @@ def save_w0_sn_data(nbins, delta, probe):
 
 def main():
 
-    # Takes upto three arguments: for nbins_src, 
+    # Takes upto three arguments: for nbins, 
     # fractional difference for derivative/FOM tunings
-    # repeat
+    # probet type
     if len(sys.argv) != 2 and len(sys.argv) != 3 and len(sys.argv) != 4:
         print("Incorrect number of arguments."),
         print("Provide the number of bins")
