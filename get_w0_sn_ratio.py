@@ -24,11 +24,12 @@ if (__name__ == '__main__'):
     # read in args
     args = sys.argv[1:]
     name = args[0]
+    num_dens_path = args[1]
 
     # load in the data
     w0_deriv = np.loadtxt("deriv_w0.dat")[:, 1:]
     c_ells = np.loadtxt("Cl_fid.dat")[:, 1:]
-    num_dens = np.loadtxt("num_dens_lensing.dat")
+    num_dens = np.loadtxt(num_dens_path)
     orderings = np.loadtxt("ordering_fid.dat")
     nbins = num_dens.shape[0]
 
@@ -40,5 +41,5 @@ if (__name__ == '__main__'):
                           (c_ells[:, autocorr_inds] + num_dens)**2))
 
     # save the output
-    fname = "w0_sn_ratio_%s.dat"%(name)
+    fname = "w0_sn_ratio.dat"
     np.savetxt(fname, [w0_sn_ratio])

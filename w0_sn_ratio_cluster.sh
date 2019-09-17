@@ -3,12 +3,14 @@
 #this script performs the final fisher analysis
 #Parameters:
 #$1:dndz filepath
-#$2: numdens
+#$2:numdens filepath
+#$3:probe type (lensing or clustering)
+#$4:fractional delta for w0 derivative
 
 
 #properties of the survey
 fsky=0.12
-
+probe=lensing
 
 # #define Fiducial values
 source fid_values.sh
@@ -26,10 +28,10 @@ mv .log_ordering.dat ordering_fid.dat
 # python cov_mat.py $fsky Cl_fid.dat ordering_fid.dat .num_dens.dat output_covmat/
 
 echo 'w0 derivative'
-./get_stencil_deriv_cluster.py 2 0.15 $1 2
+./get_stencil_deriv_cluster.py 2 $4 $1 2
 
 # python get_fisher.py $lmin $lmax om_m A_s
-python get_w0_sn_ratio.py lensing
+python get_w0_sn_ratio.py $probe
 
 # # #now the resulting fisher matrix is in fisher_out.dat
 # mkdir out_fisher_cluster
