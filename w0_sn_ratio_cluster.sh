@@ -40,7 +40,7 @@ rm .Cl_lower*.dat
 rm .Cl_upper*.dat
 mv deriv_*.dat out_wo_sn_ratio/
 
-mv w0_sn_ratio_lensing.dat
+mv w0_sn_ratio_lensing.dat out_wo_sn_ratio
 rm .log_ordering_lower*.dat
 rm .log_ordering_upper*.dat
 # mv ordering_fid.dat out_fisher_cluster/

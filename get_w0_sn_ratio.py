@@ -41,4 +41,4 @@ if (__name__ == '__main__'):
 
     # save the output
     fname = "w0_sn_ratio_%s.dat"%(name)
-    np.savetxt(fname, w0_sn_ratio)
+    np.savetxt(fname, [w0_sn_ratio])
