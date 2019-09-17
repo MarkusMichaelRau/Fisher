@@ -145,10 +145,13 @@ if __name__ == "__main__":
         print("Incorrect number of arguments")
         sys.exit(1)
 
-    z_photoZ = np.loadtxt('zdistri_model_z0=1.100000e-01_beta=6.800000e-01_Y10_source')
+    if name == "lensing":
+        z_photoZ = np.loadtxt('zdistri_model_z0=1.100000e-01_beta=6.800000e-01_Y10_source')
+    elif name == "clustering":
+        z_photoZ = np.loadtxt('zdistri_model_z0=2.800000e-01_beta=9.000000e-01_Y10_lens')
 
-    lensing_photoZ = PhotoZ_Binner(z_photoZ, 'zmid', name, nbins)
-    lensing_photoZ.calc_equal_size_bins()
-    lensing_photoZ.save_bins()
-    lensing_photoZ.calc_num_dens()
-    lensing_photoZ.save_num_dens()
+    photoZ_binner = PhotoZ_Binner(z_photoZ, 'zmid', name, nbins)
+    photoZ_binner.calc_equal_size_bins()
+    photoZ_binner.save_bins()
+    photoZ_binner.calc_num_dens()
+    photoZ_binner.save_num_dens()
