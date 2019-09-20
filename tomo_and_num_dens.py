@@ -119,7 +119,10 @@ class PhotoZ_Binner(object):
         # for lensing we need shape noise also
         if self.name == "lensing":
             sig_ep_2 = 0.23
-            num_dens = 2 * num_dens / sig_ep_2
+            print("sig_ep^2 = ", sig_ep_2)
+            print("n_g = ", num_dens)
+            num_dens = 2 * sig_ep_2 / num_dens 
+            print("num dens = ", num_dens)
 
         self.num_dens = num_dens
 
