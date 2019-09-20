@@ -12,12 +12,12 @@ import os
 def main():
     probe = "lensing"
     # first make sure the pdf is set up
-    nbins = 5
+    nbins = 4
 
     # what range of deltas to consider
-    delta_start = 1e-3 #5e-3
-    delta_end = 3e-1 #3e-1
-    delta_num = 100
+    delta_start = 0.01 #5e-3
+    delta_end = 0.3 #3e-1
+    delta_num = 20
     deltas = np.logspace(np.log10(delta_start), np.log10(delta_end), 
                          num=delta_num, endpoint=True)
 
@@ -39,17 +39,9 @@ def main():
             subprocess.call(["./w0_sn_tuner.py", str(nbins), str(delta), probe])
 
             # load FOM data into FOM array
-            #om_m_A_s_FOM = np.loadtxt("out_FOM/sbins_%d_delta_%.8e/FOM_om_m_A_s.dat"%(nbins, delta))
-            #w0_wa_FOM = np.loadtxt("out_FOM/sbins_%d_delta_%.8e/FOM_w0_wa.dat"%(nbins, delta))
             sn_ratio = np.loadtxt("out_w0_sn_all/%s_bins_%d_delta_%.8e/w0_sn_ratio.dat"%(probe, nbins, delta))
             ans[i, 1] = sn_ratio
 
-            #om_m_A_s_FOMs[i] = om_m_A_s_FOM[1]
-            #w0_wa_FOMs[i] = w0_wa_FOM[1]
-
-            #ans[:, 1] = om_m_A_s_FOMs
-            #ans[:, 2] = w0_wa_FOMs 
-            
             # save data
             np.savetxt(X=ans, fname="out_sn_vs_delta/sn_vs_delta.dat")
 
