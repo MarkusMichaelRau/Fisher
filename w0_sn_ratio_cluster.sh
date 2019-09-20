@@ -36,8 +36,8 @@ python get_w0_sn_ratio.py $3 $2
 mkdir out_w0_sn_ratio
 
 # cp Cl_fid.dat out_fisher_cluster/
-rm .Cl_lower*.dat
-rm .Cl_upper*.dat
+mv .Cl_lower*.dat out_w0_sn_ratio
+mv .Cl_upper*.dat out_w0_sn_ratio 
 mv deriv_*.dat out_w0_sn_ratio/
 
 mv w0_sn_ratio.dat out_w0_sn_ratio
