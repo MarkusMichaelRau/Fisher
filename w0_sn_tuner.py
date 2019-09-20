@@ -97,7 +97,7 @@ def main():
     ##########################################
 
     # make galaxy-redshift pdfs
-    # gen_tomo_data(probe, nbins)
+    gen_tomo_data(probe, nbins)
 
     # get signal-to-noise ratio
     gen_w0_sn_ratio(probe, delta)    
