@@ -69,9 +69,9 @@ likelihoods =
 extra_output =
 
 ;Control of extra info printed out
-quiet=F
+quiet=T
 timing=T
-debug=T
+debug=F
 
 
 ;***********************************
@@ -122,7 +122,7 @@ ell_min = $(python -c "print float($2)")
 ell_max = $(python -c "print float($3)")
 n_ell = 400
 shear-shear = source-source
-verbose = T
+verbose = F
 get_kernel_peaks=F
 EOT
 
