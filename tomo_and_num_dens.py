@@ -90,6 +90,10 @@ class PhotoZ_Binner(object):
         last_end_in = end_in
         last_diff = 0
         inds = [0]
+
+        if nbins == 1:
+            bins[:, 1] = self.photoZ_dist
+            return
         
         for cur_bin in range(nbins-1):
             cur_area = int_f(self.photoZ_dist[start_in: end_in], self.z_support[start_in:end_in])
