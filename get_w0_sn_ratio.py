@@ -13,6 +13,8 @@ import numpy as np
 import sys
 
 def get_autocorr_inds(orderings):
+    if orderings[0] == 1 and orderings[1] == 1:
+        return [0]
     autocorr_inds = []
     for i, order in enumerate(orderings):
         if order[0] == order[1]:
@@ -31,7 +33,10 @@ if (__name__ == '__main__'):
     c_ells = np.loadtxt("Cl_fid.dat")[:, 1:]
     num_dens = np.loadtxt(num_dens_path)
     orderings = np.loadtxt("ordering_fid.dat")
-    nbins = num_dens.shape[0]
+    if num_dens.shape == tuple():
+        nbins = 1
+    else:
+        nbins = num_dens.shape[0]
 
     # we only want autocorrelation info
     autocorr_inds = get_autocorr_inds(orderings)
