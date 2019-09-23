@@ -18,10 +18,10 @@ OUTDIR = "out_w0_sn_all"
 # First, generate tomo and num_dens data 
 ########################################################
 
-def gen_tomo_data(probe, nbins=5):
+def gen_tomo_data(probe, bin_scheme, nbins=5):
     print("Making %s pdf"%probe)
     script = "./tomo_and_num_dens.py"
-    subprocess.call([script, str(nbins), probe])
+    subprocess.call([script, str(nbins), probe, bin_scheme])
     print("Made %s pdf"%probe)
 
 
@@ -86,18 +86,24 @@ def main():
     elif len(sys.argv) == 2:
         delta = 0.15
         probe = "lensing"
+        bin_scheme = "eq_size"
 
-    if len(sys.argv) == 4:
+    if len(sys.argv) == 4 or len(sys.argv) == 5:
         probe = sys.argv[3] #use fisher_cluster_with_repeat.sh to reduce calcs
     else:
         probe = "lensing"
+
+    if len(sys.argv) == 5:
+        bin_scheme = sys.argv[4]
+    else:
+        bin_scheme = "eq_size"
 
     ##########################################
     # make data
     ##########################################
 
     # make galaxy-redshift pdfs
-    gen_tomo_data(probe, nbins)
+    gen_tomo_data(probe, bin_scheme, nbins)
 
     # get signal-to-noise ratio
     gen_w0_sn_ratio(probe, delta)    

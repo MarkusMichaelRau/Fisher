@@ -72,7 +72,68 @@ class PhotoZ_Binner(object):
             start_in  = end_in
             end_in    = start_in + num_per_bin_nominal
         self.bins = bins
+
+    def calc_equal_num_bins(self, int_f=simps):
+        total_area = int_f(self.photoZ_dist, self.z_support)
+        target_area = total_area/self.nbins
+        error_tol = 5e-3
         
+        cols = nbins + 1
+        rows = len(self.z_support)
+        bins = np.zeros((rows, cols))
+        
+        bins[:, 0] = self.z_support
+        
+        start_in = 0
+        bin_spacing_equal = int(np.floor(len(self.photoZ_dist)/self.nbins))
+        end_in = bin_spacing_equal
+        last_end_in = end_in
+        last_diff = 0
+        inds = [0]
+        
+        for cur_bin in range(nbins-1):
+            cur_area = int_f(self.photoZ_dist[start_in: end_in], self.z_support[start_in:end_in])
+            while abs(cur_area - target_area) > error_tol:
+                if cur_area > target_area:
+                    last_end_in = end_in
+                    if last_diff >= 0:
+                        end_in = end_in - (end_in-start_in)//2
+                    elif last_diff < 0:
+                        end_in = end_in - (last_end_in-end_in)//2
+                    last_diff = 1
+                else:
+                    last_end_in = end_in
+                    if last_diff <= 0:
+                        end_in = end_in + (end_in-start_in)//2
+                    elif last_diff > 0:
+                        end_in = end_in + (end_in - last_end_in)//2
+                    last_diff = -1
+                cur_area = int_f(self.photoZ_dist[start_in:end_in], self.z_support[start_in: end_in])
+            inds.append(end_in)
+            start_in = end_in -1
+            end_in = start_in + bin_spacing_equal
+            
+        # now that we have the start indeces of the bins, we
+        # make the bins
+        for col,_ in enumerate(inds):
+            print(col, len(inds))
+            if col == 0:
+                bins[: inds[col+1], col+1] = self.photoZ_dist[: inds[col+1]]
+            elif col < cols -2:
+                bins[inds[col]-1:inds[col+1], col+1] = self.photoZ_dist[inds[col]-1:inds[col+1]]
+            else:
+                bins[inds[col]-1:, col+1] = self.photoZ_dist[inds[col]-1:]
+
+        self.bins = bins
+        
+    def calc_bins(self, bin_name):
+        if bin_name == "eq_size":
+            self.calc_equal_size_bins()
+        elif bin_name == "eq_num":
+            self.calc_equal_num_bins()
+        else:
+            print("Enter a valid binning scheme")
+    
     def get_bins(self):
         return self.bins
     
@@ -138,11 +199,16 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         nbins = 2
         name = 'lensing'
-    elif len(sys.argv) == 3:
+        bin_name = 'eq_size'
+    elif len(sys.argv) == 4:
         nbins = int(sys.argv[1])
         name = sys.argv[2] 
+        bin_name = sys.argv[3]
         if name not in ['lensing', 'clustering']:
             print("name must be lensing or clustering")
+            sys.exit(1)
+        if bin_name not in ['eq_size', 'eq_num']:
+            print("bin_name must be eq_size or eq_num")
             sys.exit(1)
     else:
         print("Incorrect number of arguments")
@@ -154,7 +220,7 @@ if __name__ == "__main__":
         z_photoZ = np.loadtxt('zdistri_model_z0=2.800000e-01_beta=9.000000e-01_Y10_lens')
 
     photoZ_binner = PhotoZ_Binner(z_photoZ, 'zmid', name, nbins)
-    photoZ_binner.calc_equal_size_bins()
+    photoZ_binner.calc_bins(bin_name)
     photoZ_binner.save_bins()
     photoZ_binner.calc_num_dens()
     photoZ_binner.save_num_dens()
