@@ -76,7 +76,7 @@ class PhotoZ_Binner(object):
     def calc_equal_num_bins(self, int_f=simps):
         total_area = int_f(self.photoZ_dist, self.z_support)
         target_area = total_area/self.nbins
-        error_tol = 5e-3
+        error_tol = 1e-3
         
         cols = nbins + 1
         rows = len(self.z_support)
@@ -88,7 +88,8 @@ class PhotoZ_Binner(object):
         bin_spacing_equal = int(np.floor(len(self.photoZ_dist)/self.nbins))
         end_in = bin_spacing_equal
         last_end_in = end_in
-        last_diff = 0
+        last_area = 0
+        last_last_area = 0
         inds = [0]
 
         if nbins == 1:
@@ -98,20 +99,19 @@ class PhotoZ_Binner(object):
         for cur_bin in range(nbins-1):
             cur_area = int_f(self.photoZ_dist[start_in: end_in], self.z_support[start_in:end_in])
             while abs(cur_area - target_area) > error_tol:
+                if cur_area == last_last_area:
+                    if abs(cur_area - target_area) <= abs(last_area-target_area):
+                        break
+                    else:
+                        end_in = last_end_in
+                        break
+                last_last_area = last_area
+                last_area = cur_area
+                last_end_in = end_in
                 if cur_area > target_area:
-                    last_end_in = end_in
-                    if last_diff >= 0:
-                        end_in = end_in - (end_in-start_in)//2
-                    elif last_diff < 0:
-                        end_in = end_in - (last_end_in-end_in)//2
-                    last_diff = 1
+                    end_in -= 1
                 else:
-                    last_end_in = end_in
-                    if last_diff <= 0:
-                        end_in = end_in + (end_in-start_in)//2
-                    elif last_diff > 0:
-                        end_in = end_in + (end_in - last_end_in)//2
-                    last_diff = -1
+                    end_in += 1
                 cur_area = int_f(self.photoZ_dist[start_in:end_in], self.z_support[start_in: end_in])
             inds.append(end_in)
             start_in = end_in -1
