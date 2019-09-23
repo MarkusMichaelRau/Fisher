@@ -13,7 +13,7 @@ import numpy as np
 import sys
 
 def get_autocorr_inds(orderings):
-    if orderings[0] == 1 and orderings[1] == 1:
+    if orderings.shape == (2,) and orderings[0] == 1 and orderings[1] == 1:
         return [0]
     autocorr_inds = []
     for i, order in enumerate(orderings):
