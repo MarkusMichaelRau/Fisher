@@ -120,7 +120,6 @@ class PhotoZ_Binner(object):
         # now that we have the start indeces of the bins, we
         # make the bins
         for col,_ in enumerate(inds):
-            print(col, len(inds))
             if col == 0:
                 bins[: inds[col+1], col+1] = self.photoZ_dist[: inds[col+1]]
             elif col < cols -2:
@@ -131,9 +130,10 @@ class PhotoZ_Binner(object):
         self.bins = bins
         
     def calc_bins(self, bin_name):
-        if bin_name == "eq_size":
+        print("Calculating bins of %s"%bin_name)
+        if bin_name == "equal_size":
             self.calc_equal_size_bins()
-        elif bin_name == "eq_num":
+        elif bin_name == "equal_num":
             self.calc_equal_num_bins()
         else:
             print("Enter a valid binning scheme")
@@ -144,6 +144,7 @@ class PhotoZ_Binner(object):
     def save_bins(self, path=""):
         fname = path + 'tomo_' + self.name + '.dat'
         np.savetxt(fname, self.bins)
+        print("Bins have been saved to %s"%fname)
         
     def calc_num_dens(self):
         def get_bin_nonzeros(bins, ind):
@@ -203,7 +204,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         nbins = 2
         name = 'lensing'
-        bin_name = 'eq_size'
+        bin_name = 'equal_size'
     elif len(sys.argv) == 4:
         nbins = int(sys.argv[1])
         name = sys.argv[2] 
@@ -211,8 +212,8 @@ if __name__ == "__main__":
         if name not in ['lensing', 'clustering']:
             print("name must be lensing or clustering")
             sys.exit(1)
-        if bin_name not in ['eq_size', 'eq_num']:
-            print("bin_name must be eq_size or eq_num")
+        if bin_name not in ['equal_size', 'equal_num']:
+            print("bin_name must be equal_size or equal_num")
             sys.exit(1)
     else:
         print("Incorrect number of arguments")
