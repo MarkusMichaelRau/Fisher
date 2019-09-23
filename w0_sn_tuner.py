@@ -69,7 +69,7 @@ def main():
     # Takes upto three arguments: for nbins, 
     # fractional difference for derivative/FOM tunings
     # probet type
-    if len(sys.argv) != 2 and len(sys.argv) != 3 and len(sys.argv) != 4:
+    if len(sys.argv) not in (2, 3, 4, 5):
         print("Incorrect number of arguments."),
         print("Provide the number of bins")
         print("Provide fractional delta for derivative")
@@ -81,12 +81,12 @@ def main():
     ##########################################
     nbins = int(sys.argv[1])
     
-    if len(sys.argv) == 3 or len(sys.argv) == 4:
+    if len(sys.argv) in (3, 4, 5):
         delta = float(sys.argv[2])
     elif len(sys.argv) == 2:
         delta = 0.15
         probe = "lensing"
-        bin_scheme = "eq_size"
+        bin_scheme = "equal_size"
 
     if len(sys.argv) == 4 or len(sys.argv) == 5:
         probe = sys.argv[3] #use fisher_cluster_with_repeat.sh to reduce calcs
@@ -96,14 +96,14 @@ def main():
     if len(sys.argv) == 5:
         bin_scheme = sys.argv[4]
     else:
-        bin_scheme = "eq_size"
+        bin_scheme = "equal_size"
 
     ##########################################
     # make data
     ##########################################
 
     # make galaxy-redshift pdfs
-    gen_tomo_data(probe, bin_scheme, nbins)
+    # gen_tomo_data(probe, bin_scheme, nbins)
 
     # get signal-to-noise ratio
     gen_w0_sn_ratio(probe, delta)    
