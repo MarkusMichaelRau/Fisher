@@ -17,7 +17,7 @@ def main():
     # first make sure the pdf is set up
     probe = "lensing"
     bin_scheme = "equal_num"
-    nbins = 2
+    nbins = 1
     print("Making tomographic bins")
     gen_tomo_data(probe, bin_scheme, nbins)
 

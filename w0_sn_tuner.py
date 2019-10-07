@@ -9,8 +9,6 @@ import os
 import sys
 import subprocess
 import numpy as np
-import matplotlib as mpl
-mpl.use('Agg')
 
 OUTDIR = "out_w0_sn_all"
 

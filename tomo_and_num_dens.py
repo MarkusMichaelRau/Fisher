@@ -94,6 +94,7 @@ class PhotoZ_Binner(object):
 
         if nbins == 1:
             bins[:, 1] = self.photoZ_dist
+            self.bins = bins
             return
         
         for cur_bin in range(nbins-1):
