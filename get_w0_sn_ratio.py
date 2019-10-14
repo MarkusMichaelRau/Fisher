@@ -50,9 +50,10 @@ def calc_sn_ratio(w0_deriv, c_ells, num_dens, orderings, auto_corr_only=True):
     sn_ratio = np.sum((w0_deriv[:, inds]**2 / \
                       (c_ells[:, inds] + num_dens)**2))
     if not auto_corr_only:
-        crosscorr_inds = np.delete(range(len(orderings)), autocorr_inds)
-        sn_ratio += np.sum((w0_deriv[:, crosscorr_inds]**2 / \
-                      (c_ells[:, crosscorr_inds])**2))
+        if orderings.shape != (2,):
+            crosscorr_inds = np.delete(range(len(orderings)), autocorr_inds)
+            sn_ratio += np.sum((w0_deriv[:, crosscorr_inds]**2 / \
+                        (c_ells[:, crosscorr_inds])**2))
     return sn_ratio
 
 def save_sn_ratio(sn_ratio, maindir, tunedir, auto_corr_only=True):
