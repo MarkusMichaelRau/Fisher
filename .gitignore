@@ -3,3 +3,5 @@
 *.py~
 *.un~
 __pycache__/
+deriv*dat
+fom*dat
