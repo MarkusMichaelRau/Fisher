@@ -99,11 +99,13 @@ def multi_bin_cov(fsky, Clbins, Cl_ordering, num_dens, out_filename):
             combination_cl[:, i] += shotnoise[i]
 
     #now calculate the covariance matrice for each of the Cl_orderings
-
+    out_mat = []
     for i in range(Clbins.shape[0]):
         curr_l = Clbins[i, 0]
         matrix_out = get_cov_matrix(curr_l, Cl_ordering, combination_cl[i, :], orderings, fsky)
+        out_mat.append(matrix_out)
         np.savetxt(X=matrix_out, fname=out_filename+str(curr_l)+".mat")
+    return out_mat
 
 def one_bin_cov(fsky, Clbins, num_dens, out_filename): 
     added_shotnoise = (Clbins[:, 1] + 1.0/num_dens)**2
@@ -111,6 +113,7 @@ def one_bin_cov(fsky, Clbins, num_dens, out_filename):
     covariance = prefactor * added_shotnoise 
     cov_matrix = np.diag(covariance)
     np.savetxt(X=cov_matrix, fname=out_filename+"onebin.mat")
+    return cov_matrix
     
 
 if (__name__ == '__main__'):
@@ -121,7 +124,7 @@ if (__name__ == '__main__'):
 
     #TODO: Add different versions for the theoretical covariance matrices
     if (len(args) != 5):
-        print "Wrong number of command line arguments"
+        print("Wrong number of command line arguments")
         sys.exit(1)
 
     fsky = float(args[0])
@@ -130,7 +133,7 @@ if (__name__ == '__main__'):
     num_dens = np.loadtxt(args[3])
     out_filename = args[4]
     if Cl_ordering.shape == (2,):
-        print "one bin case"
+        print("one bin case")
         one_bin_cov(fsky, Clbins, num_dens, out_filename)
     else:
         multi_bin_cov(fsky, Clbins, Cl_ordering, num_dens, out_filename)

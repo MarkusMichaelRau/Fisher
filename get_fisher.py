@@ -32,7 +32,7 @@ def get_fisher_comp(para_1, para_2, llmin, llmax):
     deriv_para_2 = np.loadtxt('deriv_' + para_2 + '.dat')
     lvals = np.arange(llmin, llmax + 1)
     if deriv_para_1.shape[1] == 2:
-        print "get fisher matrix for single bin case"
+        print("get fisher matrix for single bin case")
         return single_bin_fisher(deriv_para_1, deriv_para_2, lvals)
     else:
         return multi_bin_fisher(deriv_para_1, deriv_para_2, lvals)
@@ -45,7 +45,7 @@ def single_bin_fisher(deriv_para_1, deriv_para_2, lvals):
 def multi_bin_fisher(deriv_para_1, deriv_para_2, lvals):
     fisher = 0.0
     for idx, el in enumerate(lvals):
-        #print idx
+        #print(idx)
         #first read in the datafiles
         #covariance matrix:
         left_vec = deriv_para_1[idx, 1:]
