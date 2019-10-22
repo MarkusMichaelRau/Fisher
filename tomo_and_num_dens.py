@@ -16,19 +16,32 @@ import numpy as np
 from scipy.integrate import simps, trapz, quad
 
 class PhotoZ_Binner(object):
-    def __init__(self, z_photoZ, ztype, name, nbins):
-        self.load_z_support(z_photoZ, ztype)
-        self.load_photoZ(z_photoZ)
-        self.norm_dist()
+    def __init__(self, ztype, name, nbins, bin_type):
         self.name = name
         self.nbins = nbins
+        if bin_type not in ['equal_size', 'equal_num']:
+            print("bin_type must be equal_size or equal_num")
+            sys.exit(1)
+        else:
+            self.bin_type = bin_type
+        self.load_z_photoZ()
+        self.load_z_support(ztype)
+        self.load_photoZ()
+        self.norm_dist()
 
-    def load_z_support(self, z_photoZ, ztype):
+
+    def load_z_photoZ(self):
+        if self.name == "lensing":
+            self.z_photoZ = np.loadtxt('zdistri_model_z0=1.100000e-01_beta=6.800000e-01_Y10_source')
+        elif self.name == "clustering":
+            self.z_photoZ = np.loadtxt('zdistri_model_z0=2.800000e-01_beta=9.000000e-01_Y10_lens')
+
+    def load_z_support(self, ztype):
         ztypes_inds = {'zmin': 0, 'zmid': 1, 'zmax': 2}
-        self.z_support = z_photoZ[:, ztypes_inds[ztype]]
+        self.z_support = self.z_photoZ[:, ztypes_inds[ztype]]
 
-    def load_photoZ(self, z_photoZ):
-        self.photoZ_dist = z_photoZ[:, -1]
+    def load_photoZ(self):
+        self.photoZ_dist = self.z_photoZ[:, -1]
 
     def norm_dist(self):
         area = simps(self.photoZ_dist, self.z_support)
@@ -130,11 +143,11 @@ class PhotoZ_Binner(object):
 
         self.bins = bins
         
-    def calc_bins(self, bin_name):
-        print("Calculating bins of %s"%bin_name)
-        if bin_name == "equal_size":
+    def calc_bins(self):
+        print("Calculating %d bins of %s"%(self.nbins, self.bin_type))
+        if self.bin_type == "equal_size":
             self.calc_equal_size_bins()
-        elif bin_name == "equal_num":
+        elif self.bin_type == "equal_num":
             self.calc_equal_num_bins()
         else:
             print("Enter a valid binning scheme")
@@ -205,28 +218,23 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         nbins = 2
         name = 'lensing'
-        bin_name = 'equal_size'
+        bin_type = 'equal_size'
     elif len(sys.argv) == 4:
         nbins = int(sys.argv[1])
         name = sys.argv[2] 
-        bin_name = sys.argv[3]
+        bin_type = sys.argv[3]
         if name not in ['lensing', 'clustering']:
             print("name must be lensing or clustering")
             sys.exit(1)
-        if bin_name not in ['equal_size', 'equal_num']:
-            print("bin_name must be equal_size or equal_num")
+        if bin_type not in ['equal_size', 'equal_num']:
+            print("bin_type must be equal_size or equal_num")
             sys.exit(1)
     else:
         print("Incorrect number of arguments")
         sys.exit(1)
 
-    if name == "lensing":
-        z_photoZ = np.loadtxt('zdistri_model_z0=1.100000e-01_beta=6.800000e-01_Y10_source')
-    elif name == "clustering":
-        z_photoZ = np.loadtxt('zdistri_model_z0=2.800000e-01_beta=9.000000e-01_Y10_lens')
-
-    photoZ_binner = PhotoZ_Binner(z_photoZ, 'zmid', name, nbins)
-    photoZ_binner.calc_bins(bin_name)
+    photoZ_binner = PhotoZ_Binner('zmid', name, nbins)
+    photoZ_binner.calc_bins()
     photoZ_binner.save_bins()
     photoZ_binner.calc_num_dens()
     photoZ_binner.save_num_dens()
