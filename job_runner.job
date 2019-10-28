@@ -10,6 +10,6 @@ source /home/nbhandar/.bashrc
 
 cd /home/nbhandar/Fisher
 
-conda activate ccl3
-python -m trace --trace Fisher_Forecaster.py
+conda activate ccl_env
+python Fisher_Forecaster.py
 
