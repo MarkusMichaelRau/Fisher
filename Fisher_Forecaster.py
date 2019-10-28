@@ -97,7 +97,7 @@ class Fisher_Forecaster:
             tracers.append(ccl.WeakLensingTracer(cosmo, dndz=z_dNdz))
         return tracers
 
-    def get_c_ells(self, tracers):
+    def get_c_ells(self, tracers, cosmo):
         """
         takes a set of tracers and calculates auto and cross correlations using them
         """
@@ -105,7 +105,7 @@ class Fisher_Forecaster:
         for ordering in self.orderings:
             index1 = ordering[0] - 1
             index2 = ordering[1] - 1
-            c_ells.append(ccl.angular_cl(self.cosmo, tracers[index1], tracers[index2], self.ells))
+            c_ells.append(ccl.angular_cl(cosmo, tracers[index1], tracers[index2], self.ells))
         return np.array([self.ells] + c_ells).T
 
     def save_c_ells(self):
@@ -181,11 +181,7 @@ class Fisher_Forecaster:
                 # now we call ccl and get the C_ells
                 cosmo = self.get_cosmology(fid_vals)
                 tracers = self.get_tracers(cosmo)
-                step_c_ells[step_mult] = self.get_c_ells(tracers)
-                if para == "A_s":
-                    print(step_mult)
-                    print(cosmo)
-                    np.savetxt(X=step_c_ells[step_mult], fname="deriv_%s_%.5e_%s.dat"%(para, delta, str(step_mult)))
+                step_c_ells[step_mult] = self.get_c_ells(tracers, cosmo)
 
                 # # organize the outputs so that we can load them later
                 # out_Cl_path = get_file_name(".Cl_out.dat", step_mult)
@@ -305,7 +301,7 @@ class Fisher_Forecaster:
         self.get_tomo_data()
         print("Getting fiducial C_ells", flush=True)
         self.tracers = self.get_tracers(self.cosmo)
-        self.c_ells = self.get_c_ells(self.tracers)
+        self.c_ells = self.get_c_ells(self.tracers, self.cosmo)
         self.save_c_ells()
         self.save_orderings()
         print("Fiducial C_ells and orderings saved in Cl_fid.dat and ordering_fid.dat\n", flush=True)
