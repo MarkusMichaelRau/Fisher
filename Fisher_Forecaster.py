@@ -20,7 +20,8 @@ class Fisher_Forecaster:
             self.derivs_to_calc = self.paras
         else:
             self.derivs_to_calc = derivs_to_calc
-        self.deltas = [0.1]*len(self.paras)
+        self.deltas = [0.15]*len(self.paras)
+        self.deltas[-1] = 0.1 # set delta_wa = 0.1 otherwise wa will go below -1
         self.cosmo_params = self.get_cosmo_params()
         self.cosmo = self.get_cosmology(self.cosmo_params)
         self.get_orderings()
