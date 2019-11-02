@@ -111,8 +111,11 @@ class Fisher_Forecaster:
             c_ells.append(ccl.angular_cl(cosmo, tracers[index1], tracers[index2], self.ells))
         return np.array([self.ells] + c_ells).T
 
-    def save_c_ells(self):
-        np.savetxt(X=self.c_ells, fname="Cl_fid.dat")
+    def save_c_ells(self, binned=False):
+        if binned:
+            np.savetxt(X=self.binned_c_ells, fname="Cl_fid_binned.dat")
+        else:
+            np.savetxt(X=self.c_ells, fname="Cl_fid.dat")
     
     def save_orderings(self):
         np.savetxt(X=self.orderings, fname="ordering_fid.dat", fmt='%i')
@@ -140,14 +143,12 @@ class Fisher_Forecaster:
                 os.makedirs("output_covmat/", exist_ok=True)
                 self.cov_mats = multi_bin_cov(self.fsky, self.c_ells, self.orderings, self.num_dens, "output_covmat/")
 
-    #TODO bin c_ells and cov mats
-
     def get_binned_ells(self, ells):
         Nell_bin = self.Nell_bin
         binned_ells = [1./Nell_bin[0] * sum(self.ells[0:Nell_bin[0]])] + \
                       [1./Nell_bin[i] * \
                       sum(self.ells[sum(Nell_bin[0:i]):sum(Nell_bin[0:i+1])]) for i in range(1, len(Nell_bin))]
-        return binned_ells
+        return np.asarray(binned_ells)
 
     def get_binned_c_ells(self, c_ells):
         """
@@ -165,7 +166,7 @@ class Fisher_Forecaster:
                         sum(c_ells[sum(Nell_bin[0:i]):sum(Nell_bin[0:i+1]),j]) \
                                         for i in range(1, len(Nell_bin))] \
                                         for j in range(1, len(self.orderings)+1)]   
-        return binned_c_ells 
+        return np.vstack((self.binned_ells, np.asarray(binned_c_ells))).T
     
     def bin_cov_mats(self):
         """
@@ -322,7 +323,6 @@ class Fisher_Forecaster:
             c_ells = self.c_ells
             derivs = self.derivs
             cov_mats = self.cov_mats
-
         # calc fisher components
         for i in range(n):
             for j in range(n):
@@ -422,15 +422,17 @@ class Fisher_Forecaster:
             print("Binning the ells and the C_ells...")
             self.binned_ells = self.get_binned_ells(self.ells)
             self.binned_c_ells = self.get_binned_c_ells(self.c_ells)
+            self.save_c_ells(binned=self.use_binned)
             print("Finished binning the ells and C_ells")
         print()
 
     def get_cov_and_deriv_data(self):
         # calc covariance matrix and derivs
         self.get_cov_mat()
+        self.get_derivs()
         if self.use_binned:
             self.bin_cov_mats()
-        self.get_derivs()
+            self.bin_derivs()
         self.save_derivs()
         print("Done calculating derivatives\n", flush=True)
 
