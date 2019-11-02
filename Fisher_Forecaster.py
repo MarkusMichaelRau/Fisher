@@ -9,11 +9,13 @@ from cov_mat import multi_bin_cov, one_bin_cov
 
 
 class Fisher_Forecaster:
-    def __init__(self, probe, bin_type, nbins, deriv_order, derivs_to_calc):
+    def __init__(self, probe, bin_type, nbins, deriv_order, derivs_to_calc, use_binned=True):
         self.fsky = 0.48
         self.probe = probe
         self.bin_type = bin_type
         self.nbins = nbins
+        self.use_binned = use_binned
+        self.Nell_bin = [29, 41, 57, 80, 111, 154, 215, 237]
         self.deriv_order = deriv_order
         self.paras = ["om_m", "w0", "h0", "A_s", "om_b", "n_s", "wa"]
         if derivs_to_calc == "all":
@@ -140,6 +142,50 @@ class Fisher_Forecaster:
 
     #TODO bin c_ells and cov mats
 
+    def get_binned_ells(self, ells):
+        Nell_bin = self.Nell_bin
+        binned_ells = [1./Nell_bin[0] * sum(self.ells[0:Nell_bin[0]])] + \
+                      [1./Nell_bin[i] * \
+                      sum(self.ells[sum(Nell_bin[0:i]):sum(Nell_bin[0:i+1])]) for i in range(1, len(Nell_bin))]
+        return binned_ells
+
+    def get_binned_c_ells(self, c_ells):
+        """
+        based on Danielle's code to bin the 
+        fiducial c_ells 
+        """
+        # Manually define the number of ell's per bin -
+        # this is calculated in ellbins_for_fitscov.ipynb 
+        # assuming ell range is 76-999
+        Nell_bin = self.Nell_bin
+        
+        # Create the bins in the C_ells
+        binned_c_ells= [[1./Nell_bin[0] * sum(c_ells[0:Nell_bin[0],j])] + \
+                        [1./Nell_bin[i] * \
+                        sum(c_ells[sum(Nell_bin[0:i]):sum(Nell_bin[0:i+1]),j]) \
+                                        for i in range(1, len(Nell_bin))] \
+                                        for j in range(1, len(self.orderings)+1)]   
+        return binned_c_ells 
+    
+    def bin_cov_mats(self):
+        """
+        based on Danielle's code to bin the 
+        theoretical covariance matrices 
+        """
+        print("Binning the theoretical covariance matrices")
+        Nell_bin = self.Nell_bin
+        nell = len(self.ells)
+
+        ell_mats_unbinned = self.cov_mats
+        ell_mats = [1./Nell_bin[0]**2 * \
+                    sum(ell_mats_unbinned[0:Nell_bin[0]])] + \
+                   [1./Nell_bin[i]**2 * \
+                    sum(ell_mats_unbinned[sum(Nell_bin[0:i]):sum(Nell_bin[0:i+1])]) \
+                    for i in range(1, len(Nell_bin))]
+        self.binned_cov_mats = ell_mats
+        print("Finished binning the covariance matrices.\n")
+        
+
     def get_derivs(self):
         """
         based of the get_stencil_deriv_cluster.py file,
@@ -232,35 +278,86 @@ class Fisher_Forecaster:
     def get_fisher_mat(self):
         """
         based on the get_fisher.py file, calculates the fisher matrix
+        entry by entry
         """
-        def get_fisher_comp(para1, para2):
-            if nbins == 1:
-                return single_bin_fisher(para1, para2)
+        def get_fisher_comp(para1, para2, ells, derivs, cov_mats):
+            if self.nbins == 1:
+                return single_bin_fisher(para1, para2, derivs, cov_mats)
             else:
-                return multi_bin_fisher(para1, para2)
+                return multi_bin_fisher(para1, para2, ells, derivs, cov_mats)
 
-        def single_bin_fisher(para1, para2):
-            return self.derivs[para1].dot(np.linalg.inv(self.cov_mats)).dot(self.derivs[para2])
+        def single_bin_fisher(para1, para2, derivs, cov_mats):
+            return derivs[para1].dot(np.linalg.inv(cov_mats)).dot(derivs[para2])
 
-        def multi_bin_fisher(para1, para2):
-            fisher = 0.0
-            for idx, ell in enumerate(self.ells):
-                left_vec = self.derivs[para1][idx, 1:]
-                right_vec = self.derivs[para2][idx, 1:]
-                fisher += left_vec.dot(np.linalg.inv(self.cov_mats[idx]).dot(right_vec))
-            return fisher
+        def multi_bin_fisher(para1, para2, ells, derivs, cov_mats):
+            fisher_comp = 0.0
+            for idx, _ in enumerate(ells):
+                left_vec = derivs[para1][idx, 1:]
+                right_vec = derivs[para2][idx, 1:]
+                fisher_comp += left_vec.dot(np.linalg.inv(cov_mats[idx]).dot(right_vec))
+            return fisher_comp
 
+        # initialize empty array
         n = len(self.paras)
         fisher = np.zeros((n, n))
+
+        # choose binned vs non_binned quantities
+        if self.use_binned:
+            ells = self.binned_ells
+            c_ells = self.binned_c_ells
+            derivs = self.binned_c_ells
+            cov_mats = self.binned_cov_mats
+        else:
+            ells = self.ells
+            c_ells = self.c_ells
+            derivs = self.derivs
+            cov_mats = self.cov_mats
+
+        # calc fisher components
         for i in range(n):
             for j in range(n):
-                fisher[i, j] = get_fisher_comp(self.paras[i], self.paras[j])
+                fisher[i, j] = get_fisher_comp(self.paras[i], self.paras[j], ells, derivs, cov_mats)
         self.fisher = fisher
 
-    def save_fisher(self):
-        np.savetxt(X=self.fisher, fname="fisher_out.dat")
+    def add_priors(self):
+        """
+        Adds priors based on Planck data to fisher matrix
+        """
+        try:
+            # load priors for params
+            sigma_om_m = 0           #don't set prior
+            sigma_w0 = 0             #don't set prior
+            sigma_h0 = 0.0057        #set prior
+            sigma_A_s = 0            #don't set prior
+            sigma_om_b = 0.00066     #set prior
+            sigma_n_s = 0            #don't set prior
+            sigma_galbias = 0        #don't set prior
+            sigma_wa = 0             #don't set prior
 
-    def get_fom(self):
+            # make a matrix with error on diagonal
+            if self.probe == "lensing":
+                priors = np.diag([sigma_om_m, sigma_w0, sigma_h0, sigma_A_s,
+                                  sigma_om_b, sigma_n_s, sigma_wa])
+            elif self.probe == "clustering":
+                priors = np.diag([sigma_om_m, sigma_w0, sigma_h0, sigma_A_s,
+                                  sigma_om_b, sigma_n_s, sigma_galbias, sigma_wa])
+            
+            # get corresponding fisher matrix by squaring to get a variance
+            # matrix, and then inverting non-zero values
+            priors[np.nonzero(priors)] = priors[np.nonzero(priors)]**(-2.)
+
+            self.fisher_with_priors = self.fisher + priors
+        except:
+            print("Couldn't add priors to Fisher matrix. Make sure that"+
+                  " the fisher matrix was calculated properly")
+
+    def save_fisher(self, priors=False):
+        if priors:
+            np.savetxt(X=self.fisher_with_priors, fname="fisher_with_priors_out.dat")
+        else:
+            np.savetxt(X=self.fisher, fname="fisher_out.dat")
+
+    def get_fom(self, priors=True):
         """
         calulates the DETF FoM and the om_m A_s
         Figure of Merit
@@ -284,9 +381,14 @@ class Fisher_Forecaster:
             marged_cov = np.delete(np.delete(cov, del_inds, 0), del_inds, 1)
             return marged_cov
 
+        if priors:
+            fisher = self.fisher_with_priors
+        else:
+            fisher = self.fisher
         self.foms = dict()
+        
         for para1, para2 in [("om_m", "A_s"), ("w0", "wa")]:
-            cov = np.linalg.inv(self.fisher)
+            cov = np.linalg.inv(fisher)
             marged_cov = marg_cov(cov, para1, para2)
             fom = calc_fom(marged_cov)
             self.foms[(para1, para2)] = fom
@@ -297,7 +399,7 @@ class Fisher_Forecaster:
             fom = np.array([self.foms[(para1, para2)]])
             np.savetxt(X=fom, fname="fom_%s_%s.dat"%(para1, para2))
 
-    def run_fisher_pipeline(self):
+    def get_fiducial_data(self):
         # calc fiducial stuff
         self.get_tomo_data()
         print("Getting fiducial C_ells", flush=True)
@@ -306,23 +408,40 @@ class Fisher_Forecaster:
         self.save_c_ells()
         self.save_orderings()
         print("Fiducial C_ells and orderings saved in Cl_fid.dat and ordering_fid.dat\n", flush=True)
+        if self.use_binned:
+            print("Binning the ells and the C_ells...")
+            self.binned_ells = self.get_binned_ells(self.ells)
+            self.binned_c_ells = self.get_binned_c_ells(self.c_ells)
+            print("Finished binning the ells and C_ells")
+        print()
 
+    def get_cov_and_deriv_data(self):
         # calc covariance matrix and derivs
         self.get_cov_mat()
+        if self.use_binned:
+            self.bin_cov_mats()
         self.get_derivs()
         self.save_derivs()
         print("Done calculating derivatives\n", flush=True)
 
+    def get_fisher_and_fom_data(self):
         # calc fisher matrix
         print("Caclulating Fisher Matrix", flush=True)
         self.get_fisher_mat()
-        print(self.fisher)
+        self.add_priors()
+        print(self.fisher_with_priors)
         self.save_fisher()
-        print("Done. Fisher matrix has been saved to fisher_out.dat\n", flush=True)
+        self.save_fisher(priors=True)
+        print("Done. Fisher matrix has been saved to fisher_out.dat and fisher_out_with_priors.dat\n", flush=True)
         print("Calculating DETF Figure of Merit", flush=True)
-        self.get_fom()
+        self.get_fom(priors=True)
         self.save_fom()
         print("Done calculating Figure of Merit", flush=True)
+
+    def run_fisher_pipeline(self):
+        self.get_fiducial_data()        
+        self.get_cov_and_deriv_data()
+        self.get_fisher_and_fom_data()
 
 if __name__=="__main__":
     probe = "lensing"
@@ -330,5 +449,6 @@ if __name__=="__main__":
     nbins = 5
     deriv_order = 2
     derivs_to_calc = "all"
-    F = Fisher_Forecaster(probe, bin_type, nbins, deriv_order, derivs_to_calc)
+    use_binned = True
+    F = Fisher_Forecaster(probe, bin_type, nbins, deriv_order, derivs_to_calc, use_binned=use_binned)
     F.run_fisher_pipeline()
