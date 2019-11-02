@@ -268,11 +268,21 @@ class Fisher_Forecaster:
                           'with format "deriv_%%s_%%.5e.dat"%(para, delta)', flush=True)
                     sys.exit(1)
 
+    def bin_derivs(self):
+        """
+        Bins the derivatives after calculating them
+        """
+        self.binned_derivs = {para:self.get_binned_c_ells(self.derivs[para]) for para in self.derivs_to_calc}
+
     def save_derivs(self):
+        if self.use_binned:
+            derivs = self.binned_derivs
+        else:
+            derivs = self.derivs
         for i in range(len(self.paras)):
             para = self.paras[i]
             delta = self.deltas[i]
-            deriv = self.derivs[para]
+            deriv = derivs[para]
             np.savetxt(X=deriv, fname="deriv_%s_%.5e.dat"%(para, delta))
 
     def get_fisher_mat(self):
@@ -305,7 +315,7 @@ class Fisher_Forecaster:
         if self.use_binned:
             ells = self.binned_ells
             c_ells = self.binned_c_ells
-            derivs = self.binned_c_ells
+            derivs = self.binned_derivs
             cov_mats = self.binned_cov_mats
         else:
             ells = self.ells
