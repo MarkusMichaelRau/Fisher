@@ -353,7 +353,7 @@ class Fisher_Forecaster:
 
     def save_fisher(self, priors=False):
         if priors:
-            np.savetxt(X=self.fisher_with_priors, fname="fisher_with_priors_out.dat")
+            np.savetxt(X=self.fisher_with_priors, fname="fisher_out_with_priors.dat")
         else:
             np.savetxt(X=self.fisher, fname="fisher_out.dat")
 
