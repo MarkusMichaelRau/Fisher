@@ -74,13 +74,27 @@ class Fisher_Forecaster:
         """
         generate cosmosis-like orderings for auto and cross correlations
         """
-        self.orderings = np.array([(i, j) for j in range(1, nbins+1) for i in range(1, j+1)])
+        self.orderings = np.array([(i, j) for j in range(1, self.nbins+1) for i in range(1, j+1)])
         
     def get_ells(self):
         """
         make a list of ell values
         """
         self.ells = np.arange(self.cosmo_params['lmin'], self.cosmo_params['lmax']+1)
+
+    def return_pk(self, k, a, cosmo=None, lin=False):
+        """
+        return matter power spectrum of cosmology object
+        defaults to cosmology object with fiducial values
+        """
+        if cosmo is None:
+            cosmo = self.cosmo
+
+        if lin:
+            return ccl.linear_matter_power(cosmo, k, a)
+        else:
+            return ccl.nonlinear_matter_power(cosmo, k, a)
+
 
     def get_tracers(self, cosmo):
         """
