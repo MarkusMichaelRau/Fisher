@@ -7,16 +7,16 @@
 
 
 #properties of the survey
-fsky=0.12
+fsky=0.48
 
 # #output the number density values for
 # #each BIN!!!!
 
 #assume 10 arcmin**(-2) per bin
-cat <<EOT >> .num_dens.dat
-118200000.0
-118200000.0
-EOT
+#cat <<EOT >> .num_dens.dat
+#118200000.0
+#118200000.0
+#EOT
 #
 # cat <<EOT >> .num_dens.dat
 # $2
@@ -28,43 +28,54 @@ source fid_values.sh
 
 #run cosmosis on the fiducial values
 
-./cosmo_run.sh $1 $lmin $lmax $om_m $w0 $h0 $A_s $om_b $n_s $galbias $wa
+
+echo $lmin $lmax 
+
+./cosmo_run_cluster.sh $1 $lmin $lmax $om_m $w0 $h0 $A_s $om_b $n_s $galbias $wa
 
 mv .Cl_out.dat Cl_fid.dat
 mv .log_ordering.dat ordering_fid.dat
 
 #calculate the covariance matrix from the fiducial values
-mkdir output_covmat
-python cov_mat.py $fsky Cl_fid.dat ordering_fid.dat .num_dens.dat output_covmat/
+#mkdir output_covmat
+#python cov_mat.py $fsky Cl_fid.dat ordering_fid.dat num_dens_lensing.dat output_covmat/
 
-rm .num_dens.dat
+#rm .num_dens.dat
 
+exit 1
 
 echo 'Omega matter derivative'
-./get_deriv_cluster.sh 1 0.15 $1
+#./get_deriv_cluster.sh 1 0.15 $1
+#./get_stencil_deriv_cluster.py 1 0.15 $1 2
 
-# echo 'w0 derivative'
-# ./get_deriv_cluster.sh 2 0.15 $1
+echo 'w0 derivative'
+#./get_deriv_cluster.sh 2 0.15 $1
+#./get_stencil_deriv_cluster.py 2 0.15 $1 2
 
-#echo 'H0 derivative'
+echo 'H0 derivative'
 #./get_deriv_cluster.sh 3 0.15 $1
+#./get_stencil_deriv_cluster.py 3 0.15 $1 2
 
 echo 'A_s derivative'
-./get_deriv_cluster.sh 4 0.15 $1
+#./get_deriv_cluster.sh 4 0.15 $1
+#./get_stencil_deriv_cluster.py 4 0.15 $1 2
 
-#echo 'Omega_b derivative'
+echo 'Omega_b derivative'
 #./get_deriv_cluster.sh 5 0.15 $1
+#./get_stencil_deriv_cluster.py 5 0.15 $1 2
 
-# echo 'n_s derivative'
-# ./get_deriv_cluster.sh 6 0.15 $1
+echo 'n_s derivative'
+#./get_deriv_cluster.sh 6 0.15 $1
+#./get_stencil_deriv_cluster.py 6 0.15 $1 2
 
 # echo 'galbias derivative'
 # ./get_deriv_cluster.sh 7 0.15 $1
 
-# echo 'wa derivative'
-# ./get_deriv_cluster.sh 8 0.15 $1
+echo 'wa derivative'
+#./get_deriv_cluster.sh 8 0.15 $1
+#./get_stencil_deriv_cluster.py 8 0.1 $1 2
 
-python get_fisher.py $lmin $lmax om_m A_s
+python get_fisher.py $lmin $lmax om_m w0 h0 A_s om_b n_s wa
 
 # #now the resulting fisher matrix is in fisher_out.dat
 mkdir out_fisher_cluster
