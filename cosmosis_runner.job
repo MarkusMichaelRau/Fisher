@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH --nodes 1
+#SBATCH --cpus-per-task 5
+#SBATCH --time 03:00:00
+#SBATCH -p short
+#SBATCH --job-name fisher
+#SBATCH --exclude compute-2-[6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40]
+
+source /home/nbhandar/.bashrc
+cd /home/nbhandar/Fisher
+
+conda activate ccl_env
+source /home/nbhandar/cosmosis/config/setup-cosmosis
+./fisher_cluster.sh tomo_lensing.dat
