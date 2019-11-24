@@ -201,7 +201,7 @@ class PhotoZ_Binner(object):
             sig_ep_2 = 0.23
             print("sig_ep^2 = ", sig_ep_2)
             print("n_g = ", num_dens)
-            num_dens = 2 * sig_ep_2 / num_dens 
+            num_dens = 2 * num_dens / sig_ep_2 
             print("num dens = ", num_dens)
 
         self.num_dens = num_dens
