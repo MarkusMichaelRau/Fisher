@@ -199,7 +199,10 @@ class Fisher_Forecaster:
                     for i in range(1, len(Nell_bin))]
         self.binned_cov_mats = ell_mats
         print("Finished binning the covariance matrices.\n")
-        
+        os.makedirs("output_covmat_binned/", exist_ok=True)
+        for i, x in enumerate(self.binned_cov_mats):
+            np.savetxt(fname="output_covmat_binned/"+str(self.binned_ells[i])+".mat", X=x)        
+
 
     def get_derivs(self):
         """
@@ -422,6 +425,10 @@ class Fisher_Forecaster:
         for para1, para2 in self.foms:
             fom = np.array([self.foms[(para1, para2)]])
             np.savetxt(X=fom, fname="fom_%s_%s.dat"%(para1, para2))
+
+    #TODO make cleanup function
+    def cleanup(self):
+        pass
 
     def get_fiducial_data(self):
         # calc fiducial stuff
