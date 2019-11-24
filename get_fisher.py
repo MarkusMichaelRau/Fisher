@@ -14,7 +14,7 @@ from numpy.linalg import inv
 import sys
 
 
-def get_fisher_comp(para_1, para_2, llmin, llmax):
+def get_fisher_comp(para_1, para_2, ells):
     """ Return the fisher matrix entry
     Parameters:
     -----------
@@ -30,7 +30,7 @@ def get_fisher_comp(para_1, para_2, llmin, llmax):
     # deriv_omega_m.dat
     deriv_para_1 = np.loadtxt('deriv_' + para_1 + '.dat')
     deriv_para_2 = np.loadtxt('deriv_' + para_2 + '.dat')
-    lvals = np.arange(llmin, llmax + 1)
+    lvals = ells
     if deriv_para_1.shape[1] == 2:
         print("get fisher matrix for single bin case")
         return single_bin_fisher(deriv_para_1, deriv_para_2, lvals)
@@ -51,7 +51,7 @@ def multi_bin_fisher(deriv_para_1, deriv_para_2, lvals):
         left_vec = deriv_para_1[idx, 1:]
         right_vec = deriv_para_2[idx, 1:]
 
-        cov_mat = np.loadtxt('output_covmat/' + str(el) + '.mat')  # for cosmosis --> '.0.mat'
+        cov_mat = np.loadtxt('output_covmat_binned/' + str(el) + '.mat')  # for cosmosis --> '.0.mat'
         #invert cov_mat
         cov_mat = inv(cov_mat)
         fisher = fisher + left_vec.dot(cov_mat.dot(right_vec))
@@ -67,6 +67,7 @@ if (__name__ == '__main__'):
 
     lmin = float(args[0])
     lmax = float(args[1])
+    ells = np.loadtxt("Cl_fid.dat")[:, 0]
     para_strings = []
     for i in range(2, len(args)):
         para_strings.append(args[i])
@@ -75,7 +76,7 @@ if (__name__ == '__main__'):
     fisher = np.zeros((len(para_strings), len(para_strings)))
     for i in range(len(para_strings)):
         for j in range(len(para_strings)):
-            fisher[i, j] = get_fisher_comp(para_strings[i], para_strings[j], lmin, lmax)
+            fisher[i, j] = get_fisher_comp(para_strings[i], para_strings[j], ells)
 
     #write out the fisher matrix
     np.savetxt(X=fisher, fname='fisher_out.dat')
