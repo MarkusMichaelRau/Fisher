@@ -39,7 +39,7 @@ EOT
 cat <<EOT >> .run_cosmosis.ini
 [runtime]
 sampler = test
-root = /home/naren/Research/cosmosis
+root = /home/nbhandar/cosmosis
 
 [test]
 save_dir=.parameters
@@ -47,7 +47,8 @@ fatal_errors=T
 
 [pipeline]
 ; the main pipeline. It's a sequence of modules to run.
-modules = consistency camb halofit extrapolate_power load_nz pk_to_cl
+;modules = consistency camb halofit extrapolate_power load_nz pk_to_cl
+modules = consistency camb halofit load_nz pk_to_cl
 ;modules = consistency camb linear_pk extrapolate_power load_nz pk_to_cl
 
 ; the steps are:
@@ -87,6 +88,7 @@ file = cosmosis-standard-library/boltzmann/camb/camb.so
 mode=all
 lmax=2500
 feedback=0
+kmax=300.0
 
 [halofit]
 file = cosmosis-standard-library/boltzmann/halofit_takahashi/halofit_interface.so
@@ -129,7 +131,7 @@ EOT
 #cleanup the parameter and
 #input files for cosmosis
 #even if the run fails
-source  /home/naren/Research/cosmosis/config/setup-cosmosis
+#source  ~/cosmosis/config/setup-cosmosis
 
 { # this is my bash try block
     cosmosis .run_cosmosis.ini &&
@@ -177,4 +179,9 @@ python interpolate_cl.py .Cl_out.dat .Cl_out_interp.dat $2 $3
 
 rm .Cl_out.dat
 mv .Cl_out_interp.dat .Cl_out.dat
+
+cp .Cl_out.dat .Cl_fid.dat
+
+python construct_Cell_fits_object.py .Cl_out.dat
+
 
