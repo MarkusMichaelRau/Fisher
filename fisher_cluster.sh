@@ -3,7 +3,6 @@
 #this script performs the final fisher analysis
 #Parameters:
 #$1:dndz filepath
-#$2: numdens
 
 
 #properties of the survey
@@ -27,8 +26,6 @@ fsky=0.48
 source fid_values.sh
 
 #run cosmosis on the fiducial values
-
-
 echo $lmin $lmax 
 
 ./cosmo_run_cluster.sh $1 $lmin $lmax $om_m $w0 $h0 $A_s $om_b $n_s $galbias $wa
@@ -36,44 +33,39 @@ echo $lmin $lmax
 mv .Cl_out.dat Cl_fid.dat
 mv .log_ordering.dat ordering_fid.dat
 
+
 #calculate the covariance matrix from the fiducial values
-#mkdir output_covmat
-#python cov_mat.py $fsky Cl_fid.dat ordering_fid.dat num_dens_lensing.dat output_covmat/
+mkdir output_covmat
+python cov_mat.py $fsky .Cl_fid.dat ordering_fid.dat num_dens_lensing.dat output_covmat/
+mv .Cl_fid.dat Cl_fid_unbinned.dat
+mkdir output_covmat_binned
+python construct_Cov_fits_object_listcomp.py # bin the covmats
 
 #rm .num_dens.dat
 
-exit 1
-
 echo 'Omega matter derivative'
-#./get_deriv_cluster.sh 1 0.15 $1
-#./get_stencil_deriv_cluster.py 1 0.15 $1 2
+./get_stencil_deriv_cluster.py 1 0.15 $1 2
 
 echo 'w0 derivative'
-#./get_deriv_cluster.sh 2 0.15 $1
-#./get_stencil_deriv_cluster.py 2 0.15 $1 2
+./get_stencil_deriv_cluster.py 2 0.15 $1 2
 
 echo 'H0 derivative'
-#./get_deriv_cluster.sh 3 0.15 $1
-#./get_stencil_deriv_cluster.py 3 0.15 $1 2
+./get_stencil_deriv_cluster.py 3 0.15 $1 2
 
 echo 'A_s derivative'
-#./get_deriv_cluster.sh 4 0.15 $1
-#./get_stencil_deriv_cluster.py 4 0.15 $1 2
+./get_stencil_deriv_cluster.py 4 0.15 $1 2
 
 echo 'Omega_b derivative'
-#./get_deriv_cluster.sh 5 0.15 $1
-#./get_stencil_deriv_cluster.py 5 0.15 $1 2
+./get_stencil_deriv_cluster.py 5 0.15 $1 2
 
 echo 'n_s derivative'
-#./get_deriv_cluster.sh 6 0.15 $1
-#./get_stencil_deriv_cluster.py 6 0.15 $1 2
+./get_stencil_deriv_cluster.py 6 0.15 $1 2
 
 # echo 'galbias derivative'
 # ./get_deriv_cluster.sh 7 0.15 $1
 
 echo 'wa derivative'
-#./get_deriv_cluster.sh 8 0.15 $1
-#./get_stencil_deriv_cluster.py 8 0.1 $1 2
+./get_stencil_deriv_cluster.py 8 0.1 $1 2
 
 python get_fisher.py $lmin $lmax om_m w0 h0 A_s om_b n_s wa
 
@@ -91,3 +83,4 @@ rm .log_ordering_upper.dat
 mv ordering_fid.dat out_fisher_cluster/
 
 mv output_covmat out_fisher_cluster
+mv output_covmat_binned out_fisher_cluster
