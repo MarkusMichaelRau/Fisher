@@ -32,7 +32,7 @@ h0 = $6
 omega_b = $8
 tau = 0.08
 n_s = $9
-A_s = ${AS}
+A_s = ${7}
 w = $5
 wa = ${11}
 [galaxy_bias]
