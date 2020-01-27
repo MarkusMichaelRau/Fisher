@@ -1,7 +1,7 @@
 #Note: The fiducial values should not be zero
 #otherwise there will be problems with taking the derivative
 
-om_m=0.3
+om_m=0.25
 w0=-0.9
 wa=0.0
 h0=0.72
