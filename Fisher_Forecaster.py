@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import numpy as np
 import pyccl as ccl
 import get_stencil_deriv_cluster as sd
@@ -9,7 +10,8 @@ from cov_mat import multi_bin_cov, one_bin_cov
 
 
 class Fisher_Forecaster:
-    def __init__(self, probe, bin_type, nbins, deriv_order, derivs_to_calc, use_binned=True):
+    def __init__(self, probe, bin_type, nbins, deriv_order, derivs_to_calc, \
+                 use_binned=True, outdir="out_fisher_cluster/"):
         self.fsky = 0.48
         self.probe = probe
         self.bin_type = bin_type
@@ -18,6 +20,7 @@ class Fisher_Forecaster:
         self.Nell_bin = [29, 41, 57, 80, 111, 154, 215, 237]
         self.deriv_order = deriv_order
         self.paras = ["om_m", "w0", "h0", "A_s", "om_b", "n_s", "wa"]
+        self.outdir = outdir
         if derivs_to_calc == "all":
             self.derivs_to_calc = self.paras
         else:
@@ -28,6 +31,9 @@ class Fisher_Forecaster:
         self.cosmo = self.get_cosmology(self.cosmo_params)
         self.get_orderings()
         self.get_ells()
+
+    def make_out_dir(self):
+        os.makedirs(self.outdir, exist_ok=True)
 
     def get_tomo_data(self):
         """
@@ -51,7 +57,7 @@ class Fisher_Forecaster:
         return ccl.Cosmology(Omega_c = cosmo_params['om_m'],
                              Omega_b = cosmo_params['om_b'], 
                              h = cosmo_params['h0'], 
-                             A_s = cosmo_params['A_s'], 
+                             A_s = cosmo_params['A_s'] * 1e-9, 
                              n_s = cosmo_params['n_s'], 
                              Neff = cosmo_params['N_eff'], 
                              w0= cosmo_params['w0'], 
@@ -127,12 +133,15 @@ class Fisher_Forecaster:
 
     def save_c_ells(self, binned=False):
         if binned:
-            np.savetxt(X=self.binned_c_ells, fname="Cl_fid_binned.dat")
+            fname = os.path.join(self.outdir, "Cl_fid_binned.dat")
+            np.savetxt(X=self.binned_c_ells, fname=fname)
         else:
-            np.savetxt(X=self.c_ells, fname="Cl_fid.dat")
+            fname = os.path.join(self.outdir, "Cl_fid.dat")
+            np.savetxt(X=self.c_ells, fname=fname)
     
     def save_orderings(self):
-        np.savetxt(X=self.orderings, fname="ordering_fid.dat", fmt='%i')
+        fname = os.path.join(self.outdir, "ordering_fid.dat")
+        np.savetxt(X=self.orderings, fname=fname, fmt='%i')
 
     def get_cov_mat(self):
         """
@@ -147,15 +156,21 @@ class Fisher_Forecaster:
                 os.makedirs("output_covmat/", exist_ok=True)
                 self.cov_mats = one_bin_cov(self.fsky, self.c_ells, self.num_dens, "output_covmat/")
         else:
-            if os.path.exists("output_covmat/76.0.mat"):
+            if os.path.exists(os.path.join(self.outdir, "output_covmat/76.0.mat")):
+                print("Reusing old covmats", flush=True)
+                self.cov_mats = []
+                for ell in self.ells:
+                    self.cov_mats.append(np.loadtxt(os.path.join(self.outdir, "output_covmat/%s.mat"%str(ell))))
+            elif os.path.exists("output_covmat/76.0.mat"):
                 print("Reusing old covmats", flush=True)
                 self.cov_mats = []
                 for ell in self.ells:
                     self.cov_mats.append(np.loadtxt("output_covmat/%s.mat"%str(ell)))
             else:
                 print("Calculating new covariance matrix", flush=True)
-                os.makedirs("output_covmat/", exist_ok=True)
-                self.cov_mats = multi_bin_cov(self.fsky, self.c_ells, self.orderings, self.num_dens, "output_covmat/")
+                cov_out_dir = os.path.join(self.outdir, "output_covmat/")
+                os.makedirs(cov_out_dir, exist_ok=True)
+                self.cov_mats = multi_bin_cov(self.fsky, self.c_ells, self.orderings, self.num_dens, cov_out_dir)
 
     def get_binned_ells(self, ells):
         Nell_bin = self.Nell_bin
@@ -199,10 +214,67 @@ class Fisher_Forecaster:
                     for i in range(1, len(Nell_bin))]
         self.binned_cov_mats = ell_mats
         print("Finished binning the covariance matrices.\n")
-        os.makedirs("output_covmat_binned/", exist_ok=True)
+        cov_dir_binned = os.path.join(self.outdir, "output_covmat_binned/")
+        os.makedirs(cov_dir_binned, exist_ok=True)
         for i, x in enumerate(self.binned_cov_mats):
-            np.savetxt(fname="output_covmat_binned/"+str(self.binned_ells[i])+".mat", X=x)        
+            np.savetxt(fname=os.path.join(cov_dir_binned, str(self.binned_ells[i])+".mat"), X=x)        
 
+    def calc_para_deriv(self, para, order, step_size):
+        fid_vals_orig = self.get_cosmo_params()
+        lmin = fid_vals_orig['lmin']
+        lmax = fid_vals_orig['lmax']
+        if para == "wa":
+            # since wa has a fiducial value of zero, we use w0 as a reference value
+            step = abs(fid_vals_orig["w0"]) * step_size
+        else:
+            step = abs(fid_vals_orig[para]) * step_size
+        coeffs = sd.get_difference_coeffs(order)
+        # term_paths = dict()
+        step_c_ells = dict()
+
+        # for all possible finite difference coefficients,
+        # we calculate a term in the approximation
+        for step_mult in coeffs:
+            coeff = coeffs[step_mult]
+            # if the coefficient is 0 we can ignore the term
+            if np.allclose(coeff, 0):
+                continue
+    
+            # print step to the terminal 
+            msg = "Changing paramater %s from %e by %d * %e"%(para, fid_vals_orig[para], step_mult, step) 
+            # subprocess.call(["echo", msg])
+            print(msg, flush=True)
+
+            # load the fiducial values
+            fid_vals = self.get_cosmo_params() 
+            #step the parameter we want to vary by the given step size
+            fid_vals = sd.step_para_val(fid_vals, para, step_mult, step)
+            # now we call ccl and get the C_ells
+            cosmo = self.get_cosmology(fid_vals)
+            tracers = self.get_tracers(cosmo)
+            step_c_ells[step_mult] = self.get_c_ells(tracers, cosmo)
+
+            # # organize the outputs so that we can load them later
+            # out_Cl_path = get_file_name(".Cl_out.dat", step_mult)
+            # term_paths[step_mult] = out_Cl_path
+            # subprocess.call(["mv", ".Cl_out.dat", out_Cl_path])
+            # subprocess.call(["mv", ".log_ordering.dat", get_file_name(".log_ordering.dat", step_mult)])
+
+        deriv = None
+        i = 0
+        for step_mult in coeffs:
+            if step_mult == 0:
+                continue # ignore case where coefficient is 0
+            coeff = coeffs[step_mult]
+            term = step_c_ells[step_mult]
+            if i == 0:
+                deriv = np.zeros(term.shape)
+                deriv[:, 0] = term[:, 0] # set the ell values
+            deriv[:, 1:] += coeff * term[:, 1:]
+            i += 1
+        deriv[:, 1:] /= step
+        print()
+        return deriv
 
     def get_derivs(self):
         """
@@ -213,70 +285,13 @@ class Fisher_Forecaster:
         """
         print("Calculating derivatives", flush=True)
 
-        def calc_para_deriv(para, order, step_size):
-            fid_vals_orig = self.get_cosmo_params()
-            lmin = fid_vals_orig['lmin']
-            lmax = fid_vals_orig['lmax']
-            if para == "wa":
-                # since wa has a fiducial value of zero, we use w0 as a reference value
-                step = abs(fid_vals_orig["w0"]) * step_size
-            else:
-                step = abs(fid_vals_orig[para]) * step_size
-            coeffs = sd.get_difference_coeffs(order)
-            # term_paths = dict()
-            step_c_ells = dict()
-
-            # for all possible finite difference coefficients,
-            # we calculate a term in the approximation
-            for step_mult in coeffs:
-                coeff = coeffs[step_mult]
-                # if the coefficient is 0 we can ignore the term
-                if np.allclose(coeff, 0):
-                    continue
-        
-                # print step to the terminal 
-                msg = "Changing paramater %s from %e by %d * %e"%(para, fid_vals_orig[para], step_mult, step) 
-                # subprocess.call(["echo", msg])
-                print(msg, flush=True)
-
-                # load the fiducial values
-                fid_vals = self.get_cosmo_params() 
-                #step the parameter we want to vary by the given step size
-                fid_vals = sd.step_para_val(fid_vals, para, step_mult, step)
-                # now we call ccl and get the C_ells
-                cosmo = self.get_cosmology(fid_vals)
-                tracers = self.get_tracers(cosmo)
-                step_c_ells[step_mult] = self.get_c_ells(tracers, cosmo)
-
-                # # organize the outputs so that we can load them later
-                # out_Cl_path = get_file_name(".Cl_out.dat", step_mult)
-                # term_paths[step_mult] = out_Cl_path
-                # subprocess.call(["mv", ".Cl_out.dat", out_Cl_path])
-                # subprocess.call(["mv", ".log_ordering.dat", get_file_name(".log_ordering.dat", step_mult)])
-
-            deriv = None
-            i = 0
-            for step_mult in coeffs:
-                if step_mult == 0:
-                    continue # ignore case where coefficient is 0
-                coeff = coeffs[step_mult]
-                term = step_c_ells[step_mult]
-                if i == 0:
-                    deriv = np.zeros(term.shape)
-                    deriv[:, 0] = term[:, 0] # set the ell values
-                deriv[:, 1:] += coeff * term[:, 1:]
-                i += 1
-            deriv[:, 1:] /= step
-            print()
-            return deriv
-
         self.derivs = dict()
         for i in range(len(self.paras)):
             para = self.paras[i]
             delta = self.deltas[i]
             print("Calculating %s derivative"%para, flush=True)
             if para in self.derivs_to_calc:
-                self.derivs[para] = calc_para_deriv(para, self.deriv_order, delta)
+                self.derivs[para] = self.calc_para_deriv(para, self.deriv_order, delta)
             else:
                 try:
                     self.derivs[para] = np.loadtxt("deriv_%s_%.5e.dat"%(para, delta))
@@ -301,7 +316,8 @@ class Fisher_Forecaster:
             para = self.paras[i]
             delta = self.deltas[i]
             deriv = derivs[para]
-            np.savetxt(X=deriv, fname="deriv_%s_%.5e.dat"%(para, delta))
+            fname = os.path.join(self.outdir, "deriv_%s_%.5e.dat"%(para, delta))
+            np.savetxt(X=deriv, fname=fname)
 
     def get_fisher_mat(self):
         """
@@ -380,9 +396,11 @@ class Fisher_Forecaster:
 
     def save_fisher(self, priors=False):
         if priors:
-            np.savetxt(X=self.fisher_with_priors, fname="fisher_out_with_priors.dat")
+            fname = os.path.join(self.outdir, "fisher_out_with_priors.dat")
+            np.savetxt(X=self.fisher_with_priors, fname=fname)
         else:
-            np.savetxt(X=self.fisher, fname="fisher_out.dat")
+            fname = os.path.join(self.outdir, "fisher_out.dat")
+            np.savetxt(X=self.fisher, fname=fname)
 
     def get_fom(self, priors=True):
         """
@@ -410,28 +428,67 @@ class Fisher_Forecaster:
 
         if priors:
             fisher = self.fisher_with_priors
+            self.foms_with_priors = dict()
         else:
             fisher = self.fisher
-        self.foms = dict()
+            self.foms = dict()
         
         for para1, para2 in [("om_m", "A_s"), ("w0", "wa")]:
             cov = np.linalg.inv(fisher)
             marged_cov = marg_cov(cov, para1, para2)
             fom = calc_fom(marged_cov)
-            self.foms[(para1, para2)] = fom
+            if priors:
+                self.foms_with_priors[(para1, para2)] = fom
+            else:
+                self.foms[(para1, para2)] = fom
             print(para1, para2, fom, flush=True)
 
-    def save_fom(self):
-        for para1, para2 in self.foms:
-            fom = np.array([self.foms[(para1, para2)]])
-            np.savetxt(X=fom, fname="fom_%s_%s.dat"%(para1, para2))
+    def save_fom(self, priors=True):
+        if priors:
+            foms = self.foms_with_priors
+            suffix = "_priors.dat"
+        else: 
+            foms = self.foms
+            suffix = ".dat"
+        for para1, para2 in foms:
+            fom = np.array([foms[(para1, para2)]])
+            fname = os.path.join(self.outdir, "fom_%s_%s"%(para1, para2)+suffix)
+            np.savetxt(X=fom, fname=fname)
 
     #TODO make cleanup function
-    def cleanup(self):
-        pass
+    def cleanup_cov_mats(self):
+        os.makedirs(self.outdir, exist_ok=True)
+        covmat_dir = "output_covmat/"
+        if os.path.exists(covmat_dir):
+            shutil.move(covmat_dir, os.path.join(self.outdir, covmat_dir))
+
+    #TODO tuning derivatives 
+    def get_derivative_tunings(self, tune_para):
+        # initialize tuning vars
+        delta_start = 1e-3
+        delta_end = 3e-1
+        delta_num = 50
+        deltas = np.geom_space(delta_start, delta_end, delta_num)
+
+        # initialize fom storage
+        fom_wo_wa = np.zeros(deltas.shape)
+        fom_wo_wa_priors = np.zeros(deltas.shape)
+        fom_om_m_A_s = np.zeros(deltas.shape)
+        fom_om_m_A_s_priors = np.zeros(deltas.shape)
+
+        for i in range(len(deltas)):
+            self.derivs[para] = self.calc_para_deriv(tune_para, self.deriv_order, deltas[i])
+            self.get_fisher_mat()
+            self.add_priors()
+            self.get_fom(priors=False)
+            self.get_fom(priors=True)
+            # get new fom
+
+
 
     def get_fiducial_data(self):
         # calc fiducial stuff
+        self.make_out_dir()
         self.get_tomo_data()
         print("Getting fiducial C_ells", flush=True)
         self.tracers = self.get_tracers(self.cosmo)
@@ -467,8 +524,10 @@ class Fisher_Forecaster:
         self.save_fisher(priors=True)
         print("Done. Fisher matrix has been saved to fisher_out.dat and fisher_out_with_priors.dat\n", flush=True)
         print("Calculating DETF Figure of Merit", flush=True)
+        self.get_fom(priors=False)
+        self.save_fom(priors=False)
         self.get_fom(priors=True)
-        self.save_fom()
+        self.save_fom(priors=True)
         print("Done calculating Figure of Merit", flush=True)
 
     def run_fisher_pipeline(self):
@@ -485,3 +544,4 @@ if __name__=="__main__":
     use_binned = True
     F = Fisher_Forecaster(probe, bin_type, nbins, deriv_order, derivs_to_calc, use_binned=use_binned)
     F.run_fisher_pipeline()
+    print("Finished running successfully")
