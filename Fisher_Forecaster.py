@@ -57,7 +57,7 @@ class Fisher_Forecaster:
         return ccl.Cosmology(Omega_c = cosmo_params['om_m'],
                              Omega_b = cosmo_params['om_b'], 
                              h = cosmo_params['h0'], 
-                             A_s = cosmo_params['A_s'] * 1e-9, 
+                             A_s = cosmo_params['A_s'],# * 1e-9, 
                              n_s = cosmo_params['n_s'], 
                              Neff = cosmo_params['N_eff'], 
                              w0= cosmo_params['w0'], 
