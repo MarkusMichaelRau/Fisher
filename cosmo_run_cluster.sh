@@ -22,6 +22,9 @@
 #${10}: galbias
 #${11}: wa
 
+# put back factor of 1-e9 into A_s
+AS=$(python -c "print $7*1e-9")
+
 cat <<EOT >> .values.dat
 [cosmological_parameters]
 omega_c = $4
@@ -29,7 +32,7 @@ h0 = $6
 omega_b = $8
 tau = 0.08
 n_s = $9
-A_s = $7
+A_s = ${AS}
 w = $5
 wa = ${11}
 [galaxy_bias]
@@ -47,8 +50,8 @@ fatal_errors=T
 
 [pipeline]
 ; the main pipeline. It's a sequence of modules to run.
-;modules = consistency camb halofit extrapolate_power load_nz pk_to_cl
-modules = consistency camb halofit load_nz pk_to_cl
+modules = consistency camb halofit extrapolate_power load_nz pk_to_cl
+;modules = consistency camb halofit load_nz pk_to_cl
 ;modules = consistency camb linear_pk extrapolate_power load_nz pk_to_cl
 
 ; the steps are:
@@ -148,6 +151,7 @@ EOT
 #imposed
 
 #### lensing 
+
 for file in $(ls .parameters/shear_cl/bin_*.txt)
 do
     sed '/#/d' $file > $file.new_file.txt
