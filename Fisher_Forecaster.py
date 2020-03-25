@@ -11,7 +11,7 @@ from cov_mat import multi_bin_cov, one_bin_cov
 
 class Fisher_Forecaster:
     def __init__(self, probe, bin_type, nbins, deriv_order, derivs_to_calc, \
-                 use_binned=True, outdir="out_fisher_cluster/"):
+                 use_binned=True, outdir="out_fisher_cluster/", use_h2=False):
         self.fsky = 0.48
         self.probe = probe
         self.bin_type = bin_type
@@ -20,6 +20,10 @@ class Fisher_Forecaster:
         self.Nell_bin = [29, 41, 57, 80, 111, 154, 215, 237]
         self.deriv_order = deriv_order
         self.paras = ["om_m", "w0", "h0", "A_s", "om_b", "n_s", "wa"]
+        self.use_h2 = use_h2
+        if self.use_h2:
+            self.paras[0] = "om_m_h2"
+            self.paras[4] = "om_b_h2"
         self.outdir = outdir
         if derivs_to_calc == "all":
             self.derivs_to_calc = self.paras
@@ -35,7 +39,7 @@ class Fisher_Forecaster:
     def make_out_dir(self):
         os.makedirs(self.outdir, exist_ok=True)
 
-    def get_tomo_data(self):
+    def get_tomo_data(self, to_save=True):
         """
         Calls PhotoZ_binner class from tomo_and_num_dens.py
         to bin the photometric redhifts into equal sized or
@@ -43,9 +47,11 @@ class Fisher_Forecaster:
         """
         self.photoZ_binner = PhotoZ_Binner('zmid', self.probe, self.nbins, self.bin_type)
         self.photoZ_binner.calc_bins()
-        self.photoZ_binner.save_bins()
+        if to_save:
+            self.photoZ_binner.save_bins()
         self.photoZ_binner.calc_num_dens()
-        self.photoZ_binner.save_num_dens()
+        if to_save:
+            self.photoZ_binner.save_num_dens()
         self.z_dNdz = self.photoZ_binner.bins
         self.num_dens = self.photoZ_binner.num_dens.flatten()
         
@@ -54,8 +60,15 @@ class Fisher_Forecaster:
         simple method to make a ccl cosmology object using 
         a dict of cosmological parameters
         """
-        return ccl.Cosmology(Omega_c = cosmo_params['om_m'],
-                             Omega_b = cosmo_params['om_b'], 
+        if self.use_h2:
+            om_c = cosmo_params['om_m_h2']/(cosmo_params['h0']**2)
+            om_b = cosmo_params['om_b_h2']/(cosmo_params['h0']**2)
+        else:
+            om_c = cosmo_params['om_m']
+            om_b = cosmo_params['om_b']                     
+
+        return ccl.Cosmology(Omega_c = om_c,
+                             Omega_b = om_b, 
                              h = cosmo_params['h0'], 
                              A_s = cosmo_params['A_s'],# * 1e-9, 
                              n_s = cosmo_params['n_s'], 
@@ -74,6 +87,11 @@ class Fisher_Forecaster:
                     words = line.split("=")
                     cosmo_params[words[0]] = float(words[1][:])
         cosmo_params["N_eff"] = 3.046
+        if self.use_h2:
+            cosmo_params['om_m_h2'] = cosmo_params['om_m']*(cosmo_params['h0']**2)
+            cosmo_params['om_b_h2'] = cosmo_params['om_b']*(cosmo_params['h0']**2)
+            del(cosmo_params['om_m'])
+            del(cosmo_params['om_b'])
         return cosmo_params
     
     def get_orderings(self):
@@ -274,7 +292,7 @@ class Fisher_Forecaster:
             i += 1
         deriv[:, 1:] /= step
         print()
-        return deriv
+        return deriv, step_c_ells
 
     def get_derivs(self):
         """
@@ -291,7 +309,7 @@ class Fisher_Forecaster:
             delta = self.deltas[i]
             print("Calculating %s derivative"%para, flush=True)
             if para in self.derivs_to_calc:
-                self.derivs[para] = self.calc_para_deriv(para, self.deriv_order, delta)
+                self.derivs[para], _ = self.calc_para_deriv(para, self.deriv_order, delta)
             else:
                 try:
                     self.derivs[para] = np.loadtxt("deriv_%s_%.5e.dat"%(para, delta))
@@ -402,7 +420,7 @@ class Fisher_Forecaster:
             fname = os.path.join(self.outdir, "fisher_out.dat")
             np.savetxt(X=self.fisher, fname=fname)
 
-    def get_fom(self, priors=True):
+    def get_fom(self, priors=True, para_pairs_list=None):
         """
         calulates the DETF FoM and the om_m A_s
         Figure of Merit
@@ -433,7 +451,12 @@ class Fisher_Forecaster:
             fisher = self.fisher
             self.foms = dict()
         
-        for para1, para2 in [("om_m", "A_s"), ("w0", "wa")]:
+        if para_pairs_list is None:
+            para_pairs_list = [["om_m", "A_s"], ["w0", "wa"]]
+            if self.use_h2:
+                para_pairs_list[0][0] = "om_m_h2"
+
+        for para1, para2 in para_pairs_list:
             cov = np.linalg.inv(fisher)
             marged_cov = marg_cov(cov, para1, para2)
             fom = calc_fom(marged_cov)
@@ -477,13 +500,14 @@ class Fisher_Forecaster:
         fom_om_m_A_s_priors = np.zeros(deltas.shape)
 
         for i in range(len(deltas)):
-            self.derivs[para] = self.calc_para_deriv(tune_para, self.deriv_order, deltas[i])
+            self.derivs[para], _ = self.calc_para_deriv(tune_para, self.deriv_order, deltas[i])
             self.get_fisher_mat()
             self.add_priors()
             self.get_fom(priors=False)
             self.get_fom(priors=True)
-            # get new fom
-
+            fom_w0_wa[i] = self.foms[('w0', 'wa')]
+            fom_om_m_A_s = self.foms[('om_m', 'A_s')]
+            # TODO
 
 
     def get_fiducial_data(self):
