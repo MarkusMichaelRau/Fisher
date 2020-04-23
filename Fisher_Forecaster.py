@@ -4,7 +4,6 @@ import shutil
 import numpy as np
 import pyccl as ccl
 import get_stencil_deriv_cluster as sd
-import get_fisher as gf 
 from tomo_and_num_dens import PhotoZ_Binner
 from cov_mat import multi_bin_cov, one_bin_cov
 
