@@ -92,10 +92,11 @@ mode=all
 lmax=2500
 feedback=0
 kmax=300.0
+high_accuracy_default=T
 
 [halofit]
 file = cosmosis-standard-library/boltzmann/halofit_takahashi/halofit_interface.so
-;nk=700
+nk=500
 
 [linear_pk]
 file= /pylon5/as5fp8p/nbhandar/lensing/cosmosis_fisherforecast/halofit_linear.py
@@ -125,7 +126,7 @@ filepath = $1
 file = cosmosis-standard-library/structure/projection/project_2d.py
 ell_min = $(python -c "print float($2)")
 ell_max = $(python -c "print float($3)")
-n_ell = 400
+n_ell=700
 shear-shear = source-source
 verbose = F
 get_kernel_peaks=F
@@ -186,6 +187,6 @@ mv .Cl_out_interp.dat .Cl_out.dat
 
 cp .Cl_out.dat .Cl_fid.dat
 
+# bin the c_ells
 python construct_Cell_fits_object.py .Cl_out.dat
-
 
