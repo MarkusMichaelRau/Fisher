@@ -72,13 +72,15 @@ def get_difference_coeffs(order):
     else:  # default to 3 point stencil
         return {-1: -1./2, 0: 0, 1: 1./2}
 
-def load_fid_vals(path):
+def load_fid_vals(path, use_h2=False):
     """Loads values of fiducial parameters from a given file
 
     Parameters:
     -----------
     path: string
         path to file containing fiducial values of parameters
+    use_h2: bool
+        flag to set whether om_m/om_b or ommh2/ombh2 
 
     Returns:
     --------
@@ -93,6 +95,11 @@ def load_fid_vals(path):
             if line[0] != '#' and line[0] != '\n':
                 items = line[:-1].split('=', 1)
                 fids[items[0]] = float(items[1])
+    if use_h2:
+        fids["ommh2"] = fids["om_m"] * fids["h0"]**2
+        fids["ombh2"] = fids["om_b"] * fids["h0"]**2
+        del fids["om_m"]
+        del fids["om_b"]
     return fids
 
 def get_file_name(name, step_mult):
@@ -155,7 +162,7 @@ def step_para_val(fid_vals, para, step_mult, step):
     fid_vals[para] = fid_vals[para] + step_mult * step
     return fid_vals
 
-def calc_deriv_terms(para, order, dNdz_path, cosmo_run_sh_path, step_size=0.02):
+def calc_deriv_terms(para, order, dNdz_path, cosmo_run_sh_path, step_size=0.02, use_h2=False):
     """
     Calculates the C_ells in all terms the finite difference approximation
     with a specified accuracy
@@ -187,8 +194,11 @@ def calc_deriv_terms(para, order, dNdz_path, cosmo_run_sh_path, step_size=0.02):
     """
 
     # initial parameters
-    fid_vals_orig = load_fid_vals("fid_values.sh")
-    paras = ["om_m", "w0", "h0", "A_s", "om_b", "n_s", "galbias", "wa"]
+    fid_vals_orig = load_fid_vals("fid_values.sh", use_h2)
+    if use_h2:
+        paras = ["ommh2", "w0", "h0", "A_s", "ombh2", "n_s", "galbias", "wa"]
+    else:
+        paras = ["om_m", "w0", "h0", "A_s", "om_b", "n_s", "galbias", "wa"]
     lmin = fid_vals_orig['lmin']
     lmax = fid_vals_orig['lmax']
     # convert relative difference to absolute difference
@@ -213,7 +223,7 @@ def calc_deriv_terms(para, order, dNdz_path, cosmo_run_sh_path, step_size=0.02):
         subprocess.call(["echo", msg])
 
         # load the fiducial values
-        fid_vals = load_fid_vals("fid_values.sh")    
+        fid_vals = load_fid_vals("fid_values.sh", use_h2)    
         #step the parameter we want to vary by the given step size
         fid_vals = step_para_val(fid_vals, para, step_mult, step)
         # now we call cosmosis and get the C_ells
@@ -305,7 +315,7 @@ def save_deriv(deriv, para):
     deriv_path = "deriv_%s.dat"%(para)
     np.savetxt(deriv_path, deriv)
 
-def convert_para_id_to_str(para_id):
+def convert_para_id_to_str(para_id, use_h2=False):
     """
     Gets parameter name from id
 
@@ -319,38 +329,51 @@ def convert_para_id_to_str(para_id):
     para : string
         name of parameter we want
     """
-    paras = ["om_m", "w0", "h0", "A_s", "om_b", "n_s", "galbias", "wa"]
+    if use_h2:
+        paras = ["ommh2", "w0", "h0", "A_s", "ombh2", "n_s", "galbias", "wa"]
+    else:
+        paras = ["om_m", "w0", "h0", "A_s", "om_b", "n_s", "galbias", "wa"]
     return paras[para_id - 1]
 
 if (__name__ == "__main__"):
 
     # get system args
     args = sys.argv[1:]
-    if (len(args) not in [3, 4, 5]):
+    if (len(args) not in [3, 4, 5, 6]):
         subprocess.call(["echo", "Wrong number of command line arguments"])
         sys.exit(1)
 
     # initialize variables
     para_id = int(args[0])
-    para = convert_para_id_to_str(para_id)
     step_size = float(args[1])
     dNdz_path = args[2]
 
     # if fourth argument is not supplied, default to 
     # a error order of 2
-    if (len(args) == 4):
+    if (len(args) >= 4):
         order = int(args[3])
     else:
         order = 2
 
-    # if fifth argument is not supplied, default to 
-    # some cosmo_run.sh script
-    if (len(args) == 5):
-        cosmo_run_sh_path = args[4]
+    # if fifth argument not supplied, default to 
+    # not using h2
+    if (len(args) >= 5):
+        use_h2 = bool(int(args[4]))
     else:
-        cosmo_run_sh_path = "./cosmo_run_cluster.sh" #change this to your cosmo_run.sh script
+        use_h2 = False
 
-    coeffs, step, term_paths = calc_deriv_terms(para, order, dNdz_path, cosmo_run_sh_path, step_size)
+    # if sixth argument is not supplied, default to 
+    # some cosmo_run.sh script
+    if (len(args) >= 6):
+        cosmo_run_sh_path = args[5]
+    else:
+        if use_h2:
+            cosmo_run_sh_path = "./cosmo_run_cluster_h2.sh"
+        else:
+            cosmo_run_sh_path = "./cosmo_run_cluster.sh" #change this to your cosmo_run.sh script
+
+    para = convert_para_id_to_str(para_id, use_h2)
+    coeffs, step, term_paths = calc_deriv_terms(para, order, dNdz_path, cosmo_run_sh_path, step_size, use_h2)
     deriv = calc_deriv(para, order, coeffs, step, term_paths)
     save_deriv(deriv, para)
 
