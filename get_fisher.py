@@ -14,12 +14,13 @@ from numpy.linalg import inv
 import sys
 
 
-def get_fisher_comp(para_1, para_2, ells):
+def get_fisher_comp(para_1, para_2, ells, derivs):
     """ Return the fisher matrix entry
     Parameters:
     -----------
     para1 / para2 : entries for the fisher matrix
     llmin / llmax: min l to maxl
+    derivs: list of np arrays of derivs
 
     Returns:
     --------
@@ -28,8 +29,8 @@ def get_fisher_comp(para_1, para_2, ells):
 
     #first read in the derivativ_files
     # deriv_omega_m.dat
-    deriv_para_1 = np.loadtxt('deriv_' + para_1 + '.dat')
-    deriv_para_2 = np.loadtxt('deriv_' + para_2 + '.dat')
+    deriv_para_1 = derivs[para_1] #np.loadtxt('deriv_' + para_1 + '.dat')
+    deriv_para_2 = derivs[para_2] #np.loadtxt('deriv_' + para_2 + '.dat')
     lvals = ells
     if deriv_para_1.shape[1] == 2:
         print("get fisher matrix for single bin case")
@@ -69,14 +70,16 @@ if (__name__ == '__main__'):
     lmax = float(args[1])
     ells = np.loadtxt("Cl_fid.dat")[:, 0]
     para_strings = []
+    derivs = {}
     for i in range(2, len(args)):
         para_strings.append(args[i])
+        derivs[args[i]] = np.loadtxt('deriv_' + args[i] + '.dat')
 
     #allocate the respective array for the fisher matrix
     fisher = np.zeros((len(para_strings), len(para_strings)))
     for i in range(len(para_strings)):
         for j in range(len(para_strings)):
-            fisher[i, j] = get_fisher_comp(para_strings[i], para_strings[j], ells)
+            fisher[i, j] = get_fisher_comp(para_strings[i], para_strings[j], ells, derivs)
 
     #write out the fisher matrix
     np.savetxt(X=fisher, fname='fisher_out.dat')

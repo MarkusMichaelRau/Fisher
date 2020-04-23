@@ -20,14 +20,18 @@ def marg_cov(cov, paras, para1, para2):
     marged_cov = np.delete(np.delete(cov, del_inds, 0), del_inds, 1)
     return marged_cov
 
+def get_paras_fom(fisher, paras, para1, para2): 
+    cov = np.linalg.inv(fisher)
+    marged_cov = marg_cov(cov, paras, para1, para2)
+    fom = calc_fom(marged_cov)
+    return fom
+
 def main():
     fisher_path = sys.argv[1]
     fisher = np.loadtxt(fisher_path)
     paras = ["om_m", "w0", "h0", "A_s", "om_b", "n_s", "wa"]
     for para1, para2 in [("om_m", "A_s"), ("w0", "wa")]:
-        cov = np.linalg.inv(fisher)
-        marged_cov = marg_cov(cov, paras, para1, para2)
-        fom = calc_fom(marged_cov)
+        fom = get_paras_fom(fishers, paras, para1, para2)
         print(para1, para2, fom)
 
 if __name__ == "__main__":
