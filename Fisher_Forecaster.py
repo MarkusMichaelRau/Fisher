@@ -10,6 +10,32 @@ from cov_mat import multi_bin_cov, one_bin_cov
 
 
 class Fisher_Forecaster:
+    """
+    Class to run a fisher forecasting pipeline using CCL
+    Input Parameters:
+        probe: 
+            one of "lensing" or "clustering"
+        bin_type: 
+            one of "equal_size" or "equal_num"
+        nbins: 
+            int, number of bins
+        deriv_order: 
+            int, error order of derivative
+            e.g. 2 corresponds to a 3 point stencil
+        derivs_to_calc: 
+            can be "all" or a list of parameter names from 
+            ["om_m", "w0", "h0", "A_s", "om_b", "n_s", "wa"]
+        use_binned: 
+            bool, whether to bin C_ells and covariance matrix
+            defaults to True
+        out_dir: 
+            string, where to store outputs
+            defaults to "out_fisher_cluster/"
+        use_h2: 
+            bool, whether to use om_m_h2 and om_b_h2 
+            instead of om_m and om_b
+            defaults to False
+    """
     def __init__(self, probe, bin_type, nbins, deriv_order, derivs_to_calc, \
                  use_binned=True, outdir="out_fisher_cluster/", use_h2=False):
         self.fsky = 0.48
@@ -191,6 +217,9 @@ class Fisher_Forecaster:
                 self.cov_mats = multi_bin_cov(self.fsky, self.c_ells, self.orderings, self.num_dens, cov_out_dir)
 
     def get_binned_ells(self, ells):
+        """
+        Based of Danielle Leonard's Code to bin the ells
+        """
         Nell_bin = self.Nell_bin
         binned_ells = [1./Nell_bin[0] * sum(self.ells[0:Nell_bin[0]])] + \
                       [1./Nell_bin[i] * \
@@ -238,6 +267,13 @@ class Fisher_Forecaster:
             np.savetxt(fname=os.path.join(cov_dir_binned, str(self.binned_ells[i])+".mat"), X=x)        
 
     def calc_para_deriv(self, para, order, step_size):
+    """
+    Calculates the derivative of a given parameter
+    First Calculates the c_ells in all the terms of 
+    finite difference approximation with a specified
+    step_size. Then combines the terms using a 
+    specified stencil to calculate the derivative.
+    """
         fid_vals_orig = self.get_cosmo_params()
         lmin = fid_vals_orig['lmin']
         lmax = fid_vals_orig['lmax']
@@ -278,6 +314,8 @@ class Fisher_Forecaster:
             # subprocess.call(["mv", ".Cl_out.dat", out_Cl_path])
             # subprocess.call(["mv", ".log_ordering.dat", get_file_name(".log_ordering.dat", step_mult)])
 
+
+        # now put the terms together to calculate the derivative
         deriv = None
         i = 0
         for step_mult in coeffs:
