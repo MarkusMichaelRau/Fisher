@@ -266,13 +266,13 @@ class Fisher_Forecaster:
             np.savetxt(fname=os.path.join(cov_dir_binned, str(self.binned_ells[i])+".mat"), X=x)        
 
     def calc_para_deriv(self, para, order, step_size):
-    """
-    Calculates the derivative of a given parameter
-    First Calculates the c_ells in all the terms of 
-    finite difference approximation with a specified
-    step_size. Then combines the terms using a 
-    specified stencil to calculate the derivative.
-    """
+        """
+        Calculates the derivative of a given parameter
+        First Calculates the c_ells in all the terms of 
+        finite difference approximation with a specified
+        step_size. Then combines the terms using a 
+        specified stencil to calculate the derivative.
+        """
         fid_vals_orig = self.get_cosmo_params()
         lmin = fid_vals_orig['lmin']
         lmax = fid_vals_orig['lmax']
